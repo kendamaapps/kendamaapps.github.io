@@ -5,35 +5,95 @@ body {
   color: #222;
 }
 
+/* ── Header & Navbar ── */
 header {
-  text-align: center;
-  padding: 2rem 1rem;
+  background: #fff;
+  border-bottom: 1px solid #e0e0e0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  position: sticky;
+  top: 0;
+  z-index: 100;
 }
 
-.tabs {
+.header-inner {
+  max-width: 900px;
+  margin: auto;
+  padding: 0 1.5rem;
   display: flex;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 2rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2rem;
 }
 
-.tab {
-  padding: 0.8rem 1.2rem;
-  border: none;
-  border-radius: 8px;
-  cursor: pointer;
+.brand {
+  padding: 0.75rem 0;
 }
 
-.tab.active {
-  font-weight: bold;
+.brand h1 {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.5px;
 }
 
+.brand p {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #888;
+}
+
+.navbar {
+  display: flex;
+  align-items: stretch;
+}
+
+.nav-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.nav-item {
+  display: flex;
+  align-items: stretch;
+}
+
+.nav-link {
+  display: flex;
+  align-items: center;
+  padding: 0 1.25rem;
+  height: 64px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #555;
+  border-bottom: 3px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+}
+
+.nav-link:hover {
+  color: #111;
+  border-bottom-color: #ccc;
+}
+
+.nav-link.active {
+  color: #111;
+  font-weight: 700;
+  border-bottom-color: #111;
+}
+
+/* ── Main content ── */
 main {
   max-width: 700px;
-  margin: auto;
-  padding: 1rem;
+  margin: 2rem auto;
+  padding: 0 1rem;
 }
 
+/* ── Cards ── */
 .card {
   background: white;
   padding: 2rem;
@@ -63,4 +123,24 @@ li {
   margin-top: 0.5rem;
   padding: 0.8rem;
   border-radius: 8px;
+}
+
+/* ── Responsive: collapse to scrollable row on small screens ── */
+@media (max-width: 520px) {
+  .header-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0;
+    padding: 0 1rem;
+  }
+
+  .navbar {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .nav-link {
+    height: 44px;
+    padding: 0 1rem;
+  }
 }

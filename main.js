@@ -3,7 +3,7 @@ import { renderTimer } from './tabs/timer.js';
 import { renderTracker } from './tabs/tracker.js';
 
 const app = document.getElementById('app');
-const tabs = document.querySelectorAll('.tab');
+const navLinks = document.querySelectorAll('.nav-link');
 
 const routes = {
   generator: renderGenerator,
@@ -16,13 +16,12 @@ function loadTab(name) {
   routes[name](app);
 }
 
-tabs.forEach(tab => {
-  tab.addEventListener('click', () => {
-
-    tabs.forEach(t => t.classList.remove('active'));
-    tab.classList.add('active');
-
-    loadTab(tab.dataset.tab);
+navLinks.forEach(link => {
+  link.addEventListener('click', (e) => {
+    e.preventDefault();
+    navLinks.forEach(l => l.classList.remove('active'));
+    link.classList.add('active');
+    loadTab(link.dataset.tab);
   });
 });
 
