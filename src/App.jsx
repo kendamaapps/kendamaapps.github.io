@@ -31,9 +31,9 @@ export default function App() {
           twinkleIntensity={0.5}
           rotationSpeed={0.1}
           repulsionStrength={2}
-          autoCenterRepulsion={2}
+          autoCenterRepulsion={20}
           starSpeed={0.5}
-          speed={1}
+          speed={1.5}
         />
       </div>
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
