@@ -52,21 +52,21 @@ export default function Generator() {
     const filtered = [];
 
     tricks.forEach(entry => {
-      const eventMatch =
+      const eventOk =
         selectedEvent === 'All' || entry.event === selectedEvent;
 
-      const yearMatch =
+      const yearOk =
         selectedYear === 'All' || entry.year === Number(selectedYear);
 
-      if (!eventMatch || !yearMatch) return;
+      if (!eventOk || !yearOk) return;
 
       Object.entries(entry.tricks).forEach(([difficulty, list]) => {
-        const difficultyMatch =
+        const difficultyOk =
           selectedDifficulty === 'All' || difficulty === selectedDifficulty;
 
-        if (!difficultyMatch) return;
+        if (!difficultyOk) return;
 
-        list.forEach(t => filtered.push(t));
+        filtered.push(...list);
       });
     });
 

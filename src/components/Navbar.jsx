@@ -1,9 +1,10 @@
 import { useState } from 'react';
 
 const TABS = [
+  { id: 'home', label: 'Home' },
   { id: 'generator', label: 'Generator' },
-  { id: 'timer',     label: 'Timer' },
-  { id: 'tracker',   label: 'Tracker' },
+  { id: 'timer', label: 'Timer' },
+  { id: 'tracker', label: 'Tracker' },
 ];
 
 export default function Navbar({ activeTab, onTabChange }) {
@@ -18,7 +19,16 @@ export default function Navbar({ activeTab, onTabChange }) {
   return (
     <header className="navbar">
       <div className="navbar__container">
-        <div className="navbar__brand">
+        <div
+          className="navbar__brand"
+          role="button"
+          tabIndex={0}
+          onClick={() => onTabChange('home')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') onTabChange('home');
+          }}
+          style={{ cursor: 'pointer' }}
+        >
           <span className="navbar__brand-title">Kendama Apps</span>
           <span className="navbar__brand-sub">Modular kendama toolkit</span>
         </div>
