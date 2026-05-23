@@ -17,7 +17,7 @@ export default function App() {
 
   return (
     <>
-      <div id="galaxy-bg" style={{ width: '100%', height: '600px', position: 'relative' }}>
+      <div id="galaxy-bg">
         <Galaxy 
           mouseRepulsion
           mouseInteraction
