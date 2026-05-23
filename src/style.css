@@ -249,3 +249,54 @@ li {
   width: 100% !important;
   height: 100% !important;
 }
+
+/* ========================================
+   Select Dropdown Styling (Theme Match)
+   ======================================== */
+
+select {
+  width: 100%;
+  min-width: 160px;
+  padding: 0.7rem 0.9rem;
+  border-radius: var(--border-radius);
+  border: 1px solid var(--color-border);
+  background: rgba(26, 46, 69, 0.75);
+  color: var(--color-text-body);
+  font-family: var(--font-family);
+  font-size: 0.9rem;
+  cursor: pointer;
+
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+
+  /* custom dropdown arrow */
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-text-secondary) 50%),
+                    linear-gradient(135deg, var(--color-text-secondary) 50%, transparent 50%);
+  background-position: calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+  background-size: 6px 6px, 6px 6px;
+  background-repeat: no-repeat;
+  padding-right: 2.2rem;
+}
+
+select:hover {
+  border-color: var(--color-primary);
+  background: rgba(26, 46, 69, 0.9);
+}
+
+select:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(59, 158, 255, 0.18);
+}
+
+/* Optional: style dropdown options (limited browser support) */
+option {
+  background-color: var(--color-surface);
+  color: var(--color-text-body);
+}
