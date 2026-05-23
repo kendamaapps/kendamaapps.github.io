@@ -10,74 +10,101 @@ export default function Generator() {
   const [generatedTricks, setGeneratedTricks] = useState([]);
 
   /* =========================
-     FILTER OPTIONS (CASCADED)
+     INDEX (FAST EVENT LOOKUP)
      ========================= */
+  const indexed = useMemo(() => {
+    const map = new Map();
 
-  const events = useMemo(() => {
-    return ['All', ...new Set(tricks.map(e => e.event))];
+    for (const entry of tricks) {
+      if (!map.has(entry.event)) {
+        map.set(entry.event, []);
+      }
+      map.get(entry.event).push(entry);
+    }
+
+    return map;
   }, []);
 
-  const years = useMemo(() => {
-    const filteredByEvent = tricks.filter(
-      e => selectedEvent === 'All' || e.event === selectedEvent
-    );
-
-    return [
-      'All',
-      ...new Set(filteredByEvent.map(e => e.year))
-    ].sort((a, b) => (a === 'All' ? -1 : b - a));
-  }, [selectedEvent]);
-
-  const difficulties = useMemo(() => {
-    const filteredByEventYear = tricks.filter(e => {
-      const eventMatch = selectedEvent === 'All' || e.event === selectedEvent;
-      const yearMatch = selectedYear === 'All' || e.year === Number(selectedYear);
-      return eventMatch && yearMatch;
-    });
-
-    const levels = new Set();
-
-    filteredByEventYear.forEach(entry => {
-      Object.keys(entry.tricks).forEach(level => levels.add(level));
-    });
-
-    return ['All', ...Array.from(levels)];
-  }, [selectedEvent, selectedYear]);
+  /* =========================
+     EVENT OPTIONS
+     ========================= */
+  const events = useMemo(() => {
+    return ['All', ...indexed.keys()];
+  }, [indexed]);
 
   /* =========================
-     FILTERED POOL
+     YEAR OPTIONS (EVENT-AWARE)
      ========================= */
+  const years = useMemo(() => {
+    const base =
+      selectedEvent === 'All'
+        ? tricks
+        : indexed.get(selectedEvent) || [];
 
+    const set = new Set(base.map(e => e.year));
+
+    return ['All', ...Array.from(set)].sort((a, b) =>
+      a === 'All' ? -1 : b - a
+    );
+  }, [selectedEvent, indexed]);
+
+  /* =========================
+     DIFFICULTY OPTIONS (EVENT + YEAR-AWARE)
+     ========================= */
+  const difficulties = useMemo(() => {
+    const base =
+      selectedEvent === 'All'
+        ? tricks
+        : indexed.get(selectedEvent) || [];
+
+    const filtered =
+      selectedYear === 'All'
+        ? base
+        : base.filter(e => e.year === Number(selectedYear));
+
+    const set = new Set();
+
+    for (const entry of filtered) {
+      Object.keys(entry.tricks).forEach(d => set.add(d));
+    }
+
+    return ['All', ...Array.from(set)];
+  }, [selectedEvent, selectedYear, indexed]);
+
+  /* =========================
+     FILTERED TRICK POOL
+     ========================= */
   useEffect(() => {
+    let base =
+      selectedEvent === 'All'
+        ? tricks
+        : indexed.get(selectedEvent) || [];
+
+    if (selectedYear !== 'All') {
+      base = base.filter(e => e.year === Number(selectedYear));
+    }
+
     const filtered = [];
 
-    tricks.forEach(entry => {
-      const eventOk =
-        selectedEvent === 'All' || entry.event === selectedEvent;
-
-      const yearOk =
-        selectedYear === 'All' || entry.year === Number(selectedYear);
-
-      if (!eventOk || !yearOk) return;
-
-      Object.entries(entry.tricks).forEach(([difficulty, list]) => {
+    for (const entry of base) {
+      for (const [difficulty, list] of Object.entries(entry.tricks)) {
         const difficultyOk =
-          selectedDifficulty === 'All' || difficulty === selectedDifficulty;
+          selectedDifficulty === 'All' ||
+          difficulty === selectedDifficulty;
 
-        if (!difficultyOk) return;
+        if (!difficultyOk) continue;
 
         filtered.push(...list);
-      });
-    });
+      }
+    }
 
     setAvailableTricks(filtered);
     setGeneratedTricks([]);
-  }, [selectedEvent, selectedYear, selectedDifficulty]);
+  }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
   /* =========================
      ACTIONS
      ========================= */
-
   function generateTrick() {
     if (!availableTricks.length) return;
 
@@ -88,13 +115,14 @@ export default function Generator() {
   }
 
   function removeTrick(index) {
-    setGeneratedTricks(prev => prev.filter((_, i) => i !== index));
+    setGeneratedTricks(prev =>
+      prev.filter((_, i) => i !== index)
+    );
   }
 
   /* =========================
      UI
      ========================= */
-
   return (
     <div className="card">
       <h2>Trick Generator</h2>
@@ -106,7 +134,14 @@ export default function Generator() {
         <div>
           <label>Event</label>
           <br />
-          <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}>
+          <select
+            value={selectedEvent}
+            onChange={e => {
+              setSelectedEvent(e.target.value);
+              setSelectedYear('All');
+              setSelectedDifficulty('All');
+            }}
+          >
             {events.map(e => (
               <option key={e} value={e}>{e}</option>
             ))}
@@ -116,7 +151,13 @@ export default function Generator() {
         <div>
           <label>Year</label>
           <br />
-          <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+          <select
+            value={selectedYear}
+            onChange={e => {
+              setSelectedYear(e.target.value);
+              setSelectedDifficulty('All');
+            }}
+          >
             {years.map(y => (
               <option key={y} value={y}>{y}</option>
             ))}
@@ -137,7 +178,7 @@ export default function Generator() {
         </div>
       </div>
 
-      {/* spacing between filters and button */}
+      {/* BUTTON */}
       <div style={{ marginTop: '1.2rem' }}>
         <button
           onClick={generateTrick}
