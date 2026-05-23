@@ -17,8 +17,21 @@ export default function App() {
 
   return (
     <>
-      <div id="galaxy-bg">
-        <Galaxy />
+      <div id="galaxy-bg" style={{ width: '100%', height: '600px', position: 'relative' }}>
+        <Galaxy 
+          mouseRepulsion
+          mouseInteraction
+          density={3}
+          glowIntensity={0.5}
+          saturation={0.5}
+          hueShift={150}
+          twinkleIntensity={0.5}
+          rotationSpeed={0.1}
+          repulsionStrength={2}
+          autoCenterRepulsion={2}
+          starSpeed={0.5}
+          speed={1}
+        />
       </div>
       <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
       <main id="app">
