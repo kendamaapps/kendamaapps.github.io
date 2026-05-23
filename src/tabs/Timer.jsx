@@ -1,10 +1,15 @@
 import { useState, useRef } from 'react';
 
 function fmt(ms) {
-  const s = Math.floor(ms / 1000);
-  const m = Math.floor(s / 60);
+  const totalSeconds = Math.floor(ms / 1000);
+
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
   const cs = Math.floor((ms % 1000) / 10);
-  return `${String(m).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
+
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}.${String(cs).padStart(2, '0')}`;
 }
 
 export default function Timer() {
