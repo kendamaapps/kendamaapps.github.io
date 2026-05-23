@@ -9,99 +9,106 @@ export default function Generator() {
   const [availableTricks, setAvailableTricks] = useState([]);
   const [generatedTricks, setGeneratedTricks] = useState([]);
 
+  /* =========================
+     FILTER OPTIONS (CASCADED)
+     ========================= */
+
   const events = useMemo(() => {
-    return [
-      'All',
-      ...new Set(tricks.map((entry) => entry.event))
-    ];
+    return ['All', ...new Set(tricks.map(e => e.event))];
   }, []);
 
   const years = useMemo(() => {
+    const filteredByEvent = tricks.filter(
+      e => selectedEvent === 'All' || e.event === selectedEvent
+    );
+
     return [
       'All',
-      ...new Set(tricks.map((entry) => entry.year))
-    ].sort((a, b) => {
-      if (a === 'All') return -1;
-      if (b === 'All') return 1;
-      return b - a;
-    });
-  }, []);
+      ...new Set(filteredByEvent.map(e => e.year))
+    ].sort((a, b) => (a === 'All' ? -1 : b - a));
+  }, [selectedEvent]);
 
   const difficulties = useMemo(() => {
+    const filteredByEventYear = tricks.filter(e => {
+      const eventMatch = selectedEvent === 'All' || e.event === selectedEvent;
+      const yearMatch = selectedYear === 'All' || e.year === Number(selectedYear);
+      return eventMatch && yearMatch;
+    });
+
     const levels = new Set();
 
-    tricks.forEach((entry) => {
-      Object.keys(entry.tricks).forEach((difficulty) => {
-        levels.add(difficulty);
-      });
+    filteredByEventYear.forEach(entry => {
+      Object.keys(entry.tricks).forEach(level => levels.add(level));
     });
 
     return ['All', ...Array.from(levels)];
-  }, []);
+  }, [selectedEvent, selectedYear]);
+
+  /* =========================
+     FILTERED POOL
+     ========================= */
 
   useEffect(() => {
     const filtered = [];
 
-    tricks.forEach((entry) => {
+    tricks.forEach(entry => {
       const eventMatch =
-        selectedEvent === 'All' ||
-        entry.event === selectedEvent;
+        selectedEvent === 'All' || entry.event === selectedEvent;
 
       const yearMatch =
-        selectedYear === 'All' ||
-        entry.year === Number(selectedYear);
+        selectedYear === 'All' || entry.year === Number(selectedYear);
 
       if (!eventMatch || !yearMatch) return;
 
-      Object.entries(entry.tricks).forEach(
-        ([difficulty, list]) => {
-          const difficultyMatch =
-            selectedDifficulty === 'All' ||
-            difficulty === selectedDifficulty;
+      Object.entries(entry.tricks).forEach(([difficulty, list]) => {
+        const difficultyMatch =
+          selectedDifficulty === 'All' || difficulty === selectedDifficulty;
 
-          if (!difficultyMatch) return;
+        if (!difficultyMatch) return;
 
-          list.forEach((t) => filtered.push(t));
-        }
-      );
+        list.forEach(t => filtered.push(t));
+      });
     });
 
     setAvailableTricks(filtered);
     setGeneratedTricks([]);
   }, [selectedEvent, selectedYear, selectedDifficulty]);
 
+  /* =========================
+     ACTIONS
+     ========================= */
+
   function generateTrick() {
-    if (availableTricks.length === 0) return;
+    if (!availableTricks.length) return;
 
-    const randomIndex = Math.floor(
-      Math.random() * availableTricks.length
-    );
-
+    const randomIndex = Math.floor(Math.random() * availableTricks.length);
     const newTrick = availableTricks[randomIndex];
 
-    setGeneratedTricks((prev) => [newTrick, ...prev]);
+    setGeneratedTricks(prev => [newTrick, ...prev]);
   }
+
+  function removeTrick(index) {
+    setGeneratedTricks(prev => prev.filter((_, i) => i !== index));
+  }
+
+  /* =========================
+     UI
+     ========================= */
 
   return (
     <div className="card">
       <h2>Trick Generator</h2>
 
-      <p>
-        Generate random kendama tricks using filters.
-      </p>
+      <p>Generate random kendama tricks using filters.</p>
 
+      {/* FILTERS */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
         <div>
           <label>Event</label>
           <br />
-          <select
-            value={selectedEvent}
-            onChange={(e) => setSelectedEvent(e.target.value)}
-          >
-            {events.map((event) => (
-              <option key={event} value={event}>
-                {event}
-              </option>
+          <select value={selectedEvent} onChange={e => setSelectedEvent(e.target.value)}>
+            {events.map(e => (
+              <option key={e} value={e}>{e}</option>
             ))}
           </select>
         </div>
@@ -109,14 +116,9 @@ export default function Generator() {
         <div>
           <label>Year</label>
           <br />
-          <select
-            value={selectedYear}
-            onChange={(e) => setSelectedYear(e.target.value)}
-          >
-            {years.map((year) => (
-              <option key={year} value={year}>
-                {year}
-              </option>
+          <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)}>
+            {years.map(y => (
+              <option key={y} value={y}>{y}</option>
             ))}
           </select>
         </div>
@@ -126,33 +128,55 @@ export default function Generator() {
           <br />
           <select
             value={selectedDifficulty}
-            onChange={(e) => setSelectedDifficulty(e.target.value)}
+            onChange={e => setSelectedDifficulty(e.target.value)}
           >
-            {difficulties.map((difficulty) => (
-              <option key={difficulty} value={difficulty}>
-                {difficulty}
-              </option>
+            {difficulties.map(d => (
+              <option key={d} value={d}>{d}</option>
             ))}
           </select>
         </div>
       </div>
 
-      <button
-        onClick={generateTrick}
-        disabled={availableTricks.length === 0}
-      >
-        Generate Trick
-      </button>
+      {/* spacing between filters and button */}
+      <div style={{ marginTop: '1.2rem' }}>
+        <button
+          onClick={generateTrick}
+          disabled={!availableTricks.length}
+        >
+          Generate Trick
+        </button>
+      </div>
 
       <p style={{ marginTop: '1rem' }}>
         Available tricks: {availableTricks.length}
       </p>
 
+      {/* GENERATED LIST */}
       {generatedTricks.length > 0 && (
         <ul style={{ marginTop: '1rem' }}>
           {generatedTricks.map((trick, index) => (
-            <li key={`${trick}-${index}`}>
-              {trick}
+            <li
+              key={`${trick}-${index}`}
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}
+            >
+              <span>{trick}</span>
+
+              <button
+                onClick={() => removeTrick(index)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--color-text-secondary)',
+                  cursor: 'pointer',
+                  fontSize: '1.1rem'
+                }}
+              >
+                ×
+              </button>
             </li>
           ))}
         </ul>
