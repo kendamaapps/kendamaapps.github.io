@@ -1,34 +1,77 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Kendama Apps</title>
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kendama Apps</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<header>
-  <div class="header-inner">
-    <div class="brand">
-      <h1>Kendama</h1>
-      <p>Modular kendama toolkit</p>
+
+  <div id="galaxy-bg"></div>
+
+  <header class="navbar">
+    <div class="navbar__container">
+
+      <div class="navbar__brand">
+        <span class="navbar__brand-title">Kendama Apps</span>
+        <span class="navbar__brand-sub">Modular kendama toolkit</span>
+      </div>
+
+      <button class="navbar__toggle" id="navbarToggle" aria-label="Toggle navigation" aria-controls="navbarMenu" aria-expanded="false">
+        <span class="bar"></span>
+        <span class="bar"></span>
+        <span class="bar"></span>
+      </button>
+
+      <nav id="navbarMenu" class="navbar__menu" role="navigation">
+        <ul class="navbar__list">
+          <li class="navbar__item">
+            <a class="navbar__link active" data-tab="generator" href="#">Generator</a>
+          </li>
+          <li class="navbar__item">
+            <a class="navbar__link" data-tab="timer" href="#">Timer</a>
+          </li>
+          <li class="navbar__item">
+            <a class="navbar__link" data-tab="tracker" href="#">Tracker</a>
+          </li>
+        </ul>
+      </nav>
     </div>
-    <nav class="navbar">
-      <ul class="nav-list">
-        <li class="nav-item">
-          <a class="nav-link active" data-tab="generator" href="#">Generator</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" data-tab="timer" href="#">Timer</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" data-tab="tracker" href="#">Tracker</a>
-        </li>
-      </ul>
-    </nav>
-  </div>
-</header>
-<main id="app"></main>
-<script type="module" src="main.js"></script>
+  </header>
+
+  <main id="app"></main>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      const navbarToggle = document.getElementById('navbarToggle');
+      const navbarMenu   = document.getElementById('navbarMenu');
+      if (navbarToggle) {
+        navbarToggle.addEventListener('click', function () {
+          const expanded = navbarToggle.getAttribute('aria-expanded') === 'true';
+          navbarToggle.setAttribute('aria-expanded', String(!expanded));
+          navbarToggle.classList.toggle('is-active');
+          navbarMenu.classList.toggle('is-active');
+        });
+      }
+    });
+  </script>
+
+  <script type="module">
+    import { mountGalaxy } from './Galaxy.js';
+    const bg = document.getElementById('galaxy-bg');
+    mountGalaxy(bg, {
+      hueShift: 220,
+      saturation: 0.7,
+      density: 1.2,
+      glowIntensity: 0.35,
+      twinkleIntensity: 0.4,
+      rotationSpeed: 0.04,
+      mouseRepulsion: true,
+      transparent: true,
+    });
+  </script>
+
+  <script type="module" src="main.js"></script>
 </body>
 </html>

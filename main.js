@@ -2,13 +2,13 @@ import { renderGenerator } from './tabs/generator.js';
 import { renderTimer } from './tabs/timer.js';
 import { renderTracker } from './tabs/tracker.js';
 
-const app = document.getElementById('app');
-const navLinks = document.querySelectorAll('.nav-link');
+const app      = document.getElementById('app');
+const navLinks = document.querySelectorAll('.navbar__link');
 
 const routes = {
   generator: renderGenerator,
-  timer: renderTimer,
-  tracker: renderTracker
+  timer:     renderTimer,
+  tracker:   renderTracker
 };
 
 function loadTab(name) {
