@@ -39,14 +39,18 @@ kendama/
 ├── index.html              # Vite entry
 ├── package.json            # React 18, Vite, OGL
 ├── vite.config.js
+├── data/
+    └── structured_tricks.json # tricklists data
 └── src/
     ├── main.jsx            # ReactDOM.createRoot
     ├── App.jsx             # Tab state, renders Navbar + active tab
     ├── style.css           # All existing styles (unchanged)
     ├── components/
     │   ├── Navbar.jsx      # Hamburger + tab links, driven by props
+    │   ├── Galaxy.css      # Galaxy style css
     │   └── Galaxy.jsx      # OGL shader component (direct port from React Bits)
     └── tabs/
+        ├── Home.jsx        # Homepage
         ├── Generator.jsx   # Random trick picker
         ├── Timer.jsx       # Centisecond stopwatch
         └── Tracker.jsx     # Add/remove landed tricks
