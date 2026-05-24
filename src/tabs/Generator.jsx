@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import tricks from '../../data/tricks.json';
+import tricks from '../../data/structured_tricks.json';
 
 export default function Generator() {
   const [selectedEvent, setSelectedEvent] = useState('All');
