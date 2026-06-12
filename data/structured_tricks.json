@@ -1138,6 +1138,80 @@
     }
   },
   {
+    "event": "Van Jam",
+    "year": 2025,
+    "tricks": {
+      "Competitive Speed Ladder": [
+        "1 Turn Airplane, 0 J-Stick",
+        "1 Turn Nightingale Inward 1 Turn Spike",
+        "Handlestall, In",
+        "1 Turn Lighthouse, 1.5 In",
+        "Around Usa",
+        "Inward Lunar, Flip Cush In",
+        "Whirly!",
+        "Stuntplane, Flip To House, Stuntplane",
+        "Inward Stilt, Flip In",
+        "Spacewalk Tradespike",
+        "C-Whip, Spike How You Like",
+        "Lunar, House, Inward Lunar, In (All Inward)",
+        "Bird Nod Off/On 1 Turn Spike",
+        "Underbird, Airplane",
+        "Juggle Spike",
+        "Downspike, Down Earthturn",
+        "Spike, Swivel Spike",
+        "Candlestick, Tradespike",
+        "Sweets Special (Min 3 Rotations)",
+        "Double Inward Earthturn"
+      ],
+      "Competitive Speed Ladder - Top 16": [
+        "Lunar Tre (Regular Or Inward)",
+        "Triple J-Stick",
+        "Double Tap Juggle Spike",
+        "J-Stick Typhoon",
+        "Whirl Late Ken Spike",
+        "Around Stalls",
+        "Stilt Flip, In",
+        "Turn Insta House Flip X2, Lighthouse, Inward In",
+        "Double Gunslinger",
+        "Gooncircle Spike"
+      ],
+      "Casual Speed Ladder": [
+        "Swing Brid, 1 Turn Spike",
+        "1 Turn Airplane",
+        "Candlestick",
+        "Lunar, In",
+        "1 Turn Lighthouse, Tradespike",
+        "Around The World",
+        "Base Cup Rising Dragon, Spike",
+        "Scooping Goldfish, Spike",
+        "Stuntplane Fasthand",
+        "Big Cup, Kenflip Big Cup, Spike",
+        "Moshikame X10, Spike",
+        "Swing Spike, Earthturn",
+        "Gunslinger",
+        "J-Stick",
+        "Base Cup Downspike",
+        "Hanging Clap Spike",
+        "Underbird, Spike",
+        "Handcuff Spike",
+        "Big Cup, Arm Bounce, Big Cup, Spike",
+        "Baseball, Spike"
+      ],
+      "Casual Speed Ladder - Top 16": [
+        "Inward Lunar, Inward Flip In",
+        "Juggle Big Cup, Spike",
+        "Double J-Stick",
+        "Bird Over The Valley, 1 Turn Spike",
+        "Gunslinger, Whirlslinger",
+        "Stilt, Downspike",
+        "Whirlwind",
+        "Turntable, Spike",
+        "Handlestall, Spike",
+        "1 Turn Tap Lighthouse, Tradespike"
+      ]
+    }
+  },
+  {
     "event": "Kendama World Cup",
     "year": 2016,
     "tricks": {

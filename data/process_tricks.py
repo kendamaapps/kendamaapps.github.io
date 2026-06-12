@@ -9,6 +9,7 @@ EVENT_REFERENCE = {
     "TKO": "Taiwan Kendama Open",
     "BATB": "Battle At The Border",
     "NAKO": "North American Kendama Open",
+    "VANJAM": "Van Jam"
 }
 
 def parse_trick_files(folder_path):
