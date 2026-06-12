@@ -3,8 +3,6 @@ import { useState } from 'react';
 const TABS = [
   { id: 'home', label: 'Home' },
   { id: 'generator', label: 'Generator' },
-  { id: 'timer', label: 'Timer' },
-  { id: 'tracker', label: 'Tracker' },
 ];
 
 export default function Navbar({ activeTab, onTabChange }) {

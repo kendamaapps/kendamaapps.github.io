@@ -4,19 +4,9 @@ export default function Home() {
   const features = useMemo(() => [
     {
       title: 'Trick Generator',
-      description: 'Generate kendama tricks using event, year, and difficulty filters.',
+      description: 'Generate tricks from events',
       tag: 'Generator'
     },
-    {
-      title: 'Progress Tracker',
-      description: 'Track completed tricks within a session.',
-      tag: 'Tracker'
-    },
-    {
-      title: 'Timer Mode',
-      description: 'Timed sessions for structured practice blocks.',
-      tag: 'Timer'
-    }
   ], []);
 
   return (
@@ -24,7 +14,7 @@ export default function Home() {
       <h2>Home</h2>
 
       <p style={{ marginBottom: '1.5rem' }}>
-        Training dashboard for structured kendama practice and progression tracking.
+        Kendama!
       </p>
 
       <div style={{ display: 'grid', gap: '1rem' }}>

@@ -4,14 +4,10 @@ import Galaxy from './components/Galaxy.jsx';
 
 import Home from './tabs/Home.jsx';
 import Generator from './tabs/Generator.jsx';
-import Timer from './tabs/Timer.jsx';
-import Tracker from './tabs/Tracker.jsx';
 
 const TABS = {
   home: Home,
   generator: Generator,
-  timer:     Timer,
-  tracker:   Tracker,
 };
 
 export default function App() {
