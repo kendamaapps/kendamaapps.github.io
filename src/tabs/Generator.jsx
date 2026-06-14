@@ -119,9 +119,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     return ['All', ...Array.from(set)];
   }, [selectedEvent, selectedYear, indexed]);
 
-  /* =========================
-     FILTERED TRICK POOL
-     ========================= */
+  /* =========================================================================
+     🛡️ FILTERED TRICK POOL (WITH ABSOLUTE DEDUPLICATION PROOFING)
+     ========================================================================= */
   useEffect(() => {
     if (!selectedEvent) return;
 
@@ -131,15 +131,20 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       base = base.filter(e => e.year === Number(selectedYear));
     }
 
-    const filtered = [];
+    // 💡 FIX: Use a Set structure to completely catch text duplicates across different difficulties
+    const rawSetCollector = new Set();
     for (const entry of base) {
       for (const [difficulty, list] of Object.entries(entry.tricks)) {
         const difficultyOk = selectedDifficulty === 'All' || difficulty === selectedDifficulty;
         if (!difficultyOk) continue;
-        filtered.push(...list);
+        
+        // Feed text items into unique collector 
+        list.forEach(trickItem => rawSetCollector.add(trickItem));
       }
     }
-    setAvailableTricks(filtered);
+    
+    // Transform clean collection back to array state
+    setAvailableTricks(Array.from(rawSetCollector));
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
   /* =========================================================================
@@ -151,7 +156,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     );
 
     if (!uniqueAvailable.length) {
-      alert("All available tricks for these filters are already in the queue!");
+      alert("All available unique tricks for these filters are already in the queue!");
       return;
     }
 
@@ -166,7 +171,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     );
 
     if (!uniqueAvailable.length) {
-      alert("All available tricks for these filters are already in the queue!");
+      alert("All available unique tricks for these filters are already in the queue!");
       return;
     }
 
@@ -342,9 +347,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         </button>
       </div>
 
-      {/* 💡 UPDATED STATS ROW */}
+      {/* STATS ROW */}
       <p style={{ marginTop: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
-        Available tricks: <strong style={{ color: 'var(--color-text-primary)' }}>{availableTricks.length}</strong> 
+        Available unique tricks: <strong style={{ color: 'var(--color-text-primary)' }}>{availableTricks.length}</strong> 
         &nbsp;•&nbsp; 
         Queue: <strong style={{ color: 'var(--color-text-primary)' }}>{generatedTricks.length}</strong>
       </p>
@@ -416,9 +421,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                   <li key={`${trick}-${idx}`} className="modal-item">{idx + 1}. {trick}</li>
                 ))}
               </ul>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setIsModalOpen(false)} style={vanJamButtonStyles}>Close</button>
             </div>
           </div>
         </div>,
