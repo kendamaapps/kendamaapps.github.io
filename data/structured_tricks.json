@@ -1464,6 +1464,80 @@
     }
   },
   {
+    "event": "Van Jam",
+    "year": 2026,
+    "tricks": {
+      "Competitive Speed Ladder": [
+        "Juggle Spike",
+        "Double J-Stick",
+        "Sweets Special (3 Rotations Min)",
+        "Bird Over The Valley, Swap Downspike",
+        "Tap 1 Turn Airplane",
+        "Inward Lunar, 360 Rover, In",
+        "Airplane, 1.5, Juggle, Late Kenflip, Spike",
+        "Double Tap, Juggle Spike",
+        "Airplane, 1.5, Late Kenflip, 1.5 To Airplane",
+        "Stuntplane, 1-Turn, Stunt Fast",
+        "Inward Lunar Tre",
+        "Downspike, Swap Insta Lighthouse, Downspike",
+        "Pull Up Sling, Whirl Sling",
+        "Around Usa",
+        "Handle Stall, Trade Airplane",
+        "Spacewalk Trade Spike",
+        "Gooncircle",
+        "Kenflip, Juggle, Kenflip, Juggle Spike",
+        "Wing, Spike",
+        "Juggle Big Cup, Nod To Bird"
+      ],
+      "Competitive Speed Ladder - Top 16": [
+        "4 Tap Juggle Spike",
+        "Stilt Over The Valley, Trade Spike",
+        "Juggle Ghost Stunt Fast",
+        "1-2-3 J-Stick",
+        "1 Turn Swap Candlestick, Candle Flip, Spike How You Like",
+        "Bird Juggle Bird",
+        "Triple Lunar Flip, Inward 1 Turn, In",
+        "Double Stilt Flip",
+        "Scooping Goldfish To Inward Lunar, In",
+        "Around Canada"
+      ],
+      "Casual Speed Ladder": [
+        "Bird, 1 Turn Spike",
+        "1 Turn Airplane",
+        "Downspike, Downearth",
+        "Lunar, In",
+        "1 Turn Lighthouse, Tradespike",
+        "Around The World",
+        "Scooping Goldfish, In",
+        "Downspike, Fasthand",
+        "Swing Spike, Earthturn",
+        "J-Stick",
+        "Airplane, Poop",
+        "Stuntplane Fasthand",
+        "Underbird, Spike",
+        "Big Cup, Arm Bounce, Big Cup, Spike",
+        "Turntable, Spike",
+        "Big Cup Rising Dragon, Spike",
+        "Hanging Spike",
+        "Stilt, Flip In",
+        "Og Tap",
+        "Whirlwind"
+      ],
+      "Casual Speed Ladder - Top 16": [
+        "Juggle Spike",
+        "Bird Over The Valley, In",
+        "1-Turn Lighthouse, Lighthouse Flip, In",
+        "Around Usa",
+        "Double J-Stick",
+        "Switch Spike",
+        "Lunar, Lunar Flip, Flip In",
+        "Candlestick, Swing Spike",
+        "Faster Than Gravity",
+        "Gunslinger Spike, Whirlsling"
+      ]
+    }
+  },
+  {
     "event": "Kendama World Cup",
     "year": 2015,
     "tricks": {
