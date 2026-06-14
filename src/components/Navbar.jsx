@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { Link, NavLink } from 'react-router'; // 💡 Import modern router components
+import { Link, NavLink } from 'react-router';
 
 const TABS = [
   { path: '/', label: 'Home', end: true },          // Path maps to root. 'end' ensures strict matching
   { path: '/generator', label: 'Generator' },
-  { path: '/log', label: 'Log' },                   // 💡 Added your missing Log tab to the menu list!
+  { path: '/log', label: 'Log' },
 ];
 
 export default function Navbar() {
@@ -13,7 +13,7 @@ export default function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar__container">
-        {/* 💡 Use <Link> for the Brand layout instead of onClick/onKeyDown div hacks */}
+        {/* Use <Link> for the Brand layout instead of onClick/onKeyDown div hacks */}
         <Link 
           to="/" 
           className="navbar__brand" 
@@ -40,8 +40,8 @@ export default function Navbar() {
           <ul className="navbar__list">
             {TABS.map(tab => (
               <li key={tab.path} className="navbar__item">
-                {/* 💡 <NavLink> auto-toggles the class name if active. 
-                  We use a function in className to combine your custom styling structure.
+                {/* <NavLink> auto-toggles the class name if active. 
+                  use a function in className to combine custom styling structure.
                 */}
                 <NavLink
                   to={tab.path}

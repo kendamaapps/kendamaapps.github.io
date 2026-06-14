@@ -10,7 +10,9 @@ import Log from './tabs/Log.jsx';
 // dynamic background layer
 function AppBackground() {
   const location = useLocation();
-  const isVanJam = location.pathname.toLowerCase() === '/generator/vanjam';
+  
+  // Check if the pathname STARTS with generator/vanjam to account for trailing years
+  const isVanJam = location.pathname.toLowerCase().startsWith('/generator/vanjam');
 
   if (isVanJam) {
     return (
@@ -95,8 +97,10 @@ export default function App() {
       <main id="app">
         <Routes>
           <Route path="/" element={<Home />} />
+          
+          {/* Keep optional parameter fallbacks so basic /generator or /generator/all links don't break */}
           <Route 
-            path="/generator/:event?" 
+            path="/generator" 
             element={
               <Generator 
                 onLogTrick={addLogEntry}
@@ -105,6 +109,27 @@ export default function App() {
               />
             } 
           />
+          <Route 
+            path="/generator/:event" 
+            element={
+              <Generator 
+                onLogTrick={addLogEntry}
+                generatedTricks={generatedQueue}
+                setGeneratedTricks={setGeneratedQueue}
+              />
+            } 
+          />
+          <Route 
+            path="/generator/:event/:year" 
+            element={
+              <Generator 
+                onLogTrick={addLogEntry}
+                generatedTricks={generatedQueue}
+                setGeneratedTricks={setGeneratedQueue}
+              />
+            } 
+          />
+
           <Route path="/log" element={<Log logs={trickHistory} onClearLogs={clearLogs} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

@@ -4,11 +4,11 @@ import { useParams, useNavigate, Link } from 'react-router';
 import tricks from '../../data/structured_tricks.json';
 
 export default function Generator({ onLogTrick, generatedTricks = [], setGeneratedTricks }) {
-  const { event } = useParams();
+  const { event, year } = useParams();
   const navigate = useNavigate();
 
   /* =========================================================================
-     💡 FAST EVENT LOOKUP INDEX
+     FAST EVENT LOOKUP INDEX
      ========================================================================= */
   const indexed = useMemo(() => {
     const map = new Map();
@@ -26,7 +26,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, [indexed]);
 
   /* =========================================================================
-     💡 SLUG RESOLVER & VALIDATION
+     SLUG RESOLVER & VALIDATION
      ========================================================================= */
   const selectedEvent = useMemo(() => {
     if (!event) return null;
@@ -39,7 +39,14 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     return matchedOriginalName;
   }, [event, events]);
 
-  // Safety trigger: Redirect home if an invalid slug is typed
+  // Read year from URL param, fallback to 'All' if not explicitly defined
+  const selectedYear = useMemo(() => {
+    if (!year) return 'All';
+    if (year.toLowerCase() === 'all') return 'All';
+    return year;
+  }, [year]);
+
+  // Safety trigger: Redirect home if an invalid event slug is typed
   useEffect(() => {
     if (event && !selectedEvent) {
       console.warn(`Event "${event}" is invalid. Redirecting...`);
@@ -47,22 +54,18 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     }
   }, [event, selectedEvent, navigate]);
 
-  const [selectedYear, setSelectedYear] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [availableTricks, setAvailableTricks] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   /* =========================================================================
-     💡 THEME INTERCEPTOR EFFECT
+     THEME INTERCEPTOR EFFECT
      ========================================================================= */
   const isVanJam = selectedEvent === 'Van Jam';
-  
-  // 💡 FIX: Treat "All" as the current year (2026) to prevent CSS variables from breaking
   const is2026 = selectedYear === '2026' || selectedYear === 'All';
 
   useEffect(() => {
     if (isVanJam) {
-      // Safely apply the active custom variation string attributes to the document root
       document.body.setAttribute('data-theme', is2026 ? 'vanjam-2026' : 'vanjam-2025');
     } else {
       document.body.removeAttribute('data-theme');
@@ -72,6 +75,28 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       document.body.removeAttribute('data-theme');
     };
   }, [isVanJam, is2026]);
+
+  /* =========================================================================
+     ⚙️ DYNAMIC PARAM NAVIGATION HANDLERS
+     ========================================================================= */
+  function updateParamRouting(eventSlug, yearSlug) {
+    const cleanEvent = eventSlug.replace(/\s+/g, '').toLowerCase();
+    const cleanYear = yearSlug.toLowerCase();
+    navigate(`/generator/${cleanEvent}/${cleanYear}`);
+  }
+
+  function handleEventSelect(newEventName) {
+    setSelectedDifficulty('All');
+    // Default to 'all' years when switching to a brand new event ecosystem
+    updateParamRouting(newEventName, 'all');
+  }
+
+  function handleYearSelect(newYearValue) {
+    setSelectedDifficulty('All');
+    if (selectedEvent) {
+      updateParamRouting(selectedEvent, newYearValue);
+    }
+  }
 
   /* =========================
      YEAR OPTIONS (EVENT-AWARE)
@@ -120,21 +145,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     setAvailableTricks(filtered);
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
-  /* =========================================================================
-     💡 ROUTING ACTION
-     ========================================================================= */
-  function handleEventSelect(newEventName) {
-    setSelectedYear('All');
-    setSelectedDifficulty('All');
-    
-    if (newEventName === 'All') {
-      navigate('/generator/all');
-    } else {
-      const cleanSlug = newEventName.replace(/\s+/g, '').toLowerCase();
-      navigate(`/generator/${cleanSlug}`);
-    }
-  }
-
   function generateTrick() {
     if (!availableTricks.length) return;
     const randomIndex = Math.floor(Math.random() * availableTricks.length);
@@ -158,7 +168,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const vanJamGreen = '#b5ca6d'; 
   const vanJamDarkText = '#1a1a1a';
 
-  // Toggle layout components elegantly
   const activeThemeColor = is2026 ? vanJamGreen : vanJamYellow;
   const activeBorderColor = is2026 ? '#9cb057' : '#dfb13c';
 
@@ -240,10 +249,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
           <br />
           <select
             value={selectedYear}
-            onChange={e => {
-              setSelectedYear(e.target.value);
-              setSelectedDifficulty('All');
-            }}
+            onChange={e => handleYearSelect(e.target.value)}
           >
             {years.map(y => (
               <option key={y} value={y}>{y}</option>
@@ -367,9 +373,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                   <li key={`${trick}-${idx}`} className="modal-item">{idx + 1}. {trick}</li>
                 ))}
               </ul>
-            </div>
-            <div className="modal-footer">
-              <button onClick={() => setIsModalOpen(false)} style={vanJamButtonStyles}>Close</button>
             </div>
           </div>
         </div>,

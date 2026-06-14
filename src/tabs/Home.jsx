@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router'; // 💡 Import the hook
+import { useNavigate } from 'react-router';
 
 export default function Home() {
   const navigate = useNavigate(); // Initialize navigation tool
@@ -28,7 +28,7 @@ export default function Home() {
         {features.map((f) => (
           <div
             key={f.title}
-            onClick={() => navigate(f.path)} // 💡 Use navigate to switch paths cleanly
+            onClick={() => navigate(f.path)} // Use navigate to switch paths cleanly
             style={{
               padding: '1rem',
               borderRadius: '8px',
