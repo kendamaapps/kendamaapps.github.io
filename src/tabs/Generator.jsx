@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import tricks from '../../data/structured_tricks.json';
 
-export default function Generator() {
+export default function Generator({ onLogTrick }) {
   const [selectedEvent, setSelectedEvent] = useState('All');
   const [selectedYear, setSelectedYear] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
@@ -14,14 +14,12 @@ export default function Generator() {
      ========================= */
   const indexed = useMemo(() => {
     const map = new Map();
-
     for (const entry of tricks) {
       if (!map.has(entry.event)) {
         map.set(entry.event, []);
       }
       map.get(entry.event).push(entry);
     }
-
     return map;
   }, []);
 
@@ -40,9 +38,7 @@ export default function Generator() {
       selectedEvent === 'All'
         ? tricks
         : indexed.get(selectedEvent) || [];
-
     const set = new Set(base.map(e => e.year));
-
     return ['All', ...Array.from(set)].sort((a, b) =>
       a === 'All' ? -1 : b - a
     );
@@ -56,18 +52,14 @@ export default function Generator() {
       selectedEvent === 'All'
         ? tricks
         : indexed.get(selectedEvent) || [];
-
     const filtered =
       selectedYear === 'All'
         ? base
         : base.filter(e => e.year === Number(selectedYear));
-
     const set = new Set();
-
     for (const entry of filtered) {
       Object.keys(entry.tricks).forEach(d => set.add(d));
     }
-
     return ['All', ...Array.from(set)];
   }, [selectedEvent, selectedYear, indexed]);
 
@@ -85,19 +77,15 @@ export default function Generator() {
     }
 
     const filtered = [];
-
     for (const entry of base) {
       for (const [difficulty, list] of Object.entries(entry.tricks)) {
         const difficultyOk =
           selectedDifficulty === 'All' ||
           difficulty === selectedDifficulty;
-
         if (!difficultyOk) continue;
-
         filtered.push(...list);
       }
     }
-
     setAvailableTricks(filtered);
     setGeneratedTricks([]);
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
@@ -107,10 +95,8 @@ export default function Generator() {
      ========================= */
   function generateTrick() {
     if (!availableTricks.length) return;
-
     const randomIndex = Math.floor(Math.random() * availableTricks.length);
     const newTrick = availableTricks[randomIndex];
-
     setGeneratedTricks(prev => [newTrick, ...prev]);
   }
 
@@ -120,14 +106,20 @@ export default function Generator() {
     );
   }
 
+  function completeTrick(trickName, index) {
+    if (onLogTrick) {
+      onLogTrick(trickName); // Send up to App.jsx state
+    }
+    removeTrick(index); // Clean up UI row
+  }
+
   /* =========================
      UI
      ========================= */
   return (
     <div className="card">
       <h2>Trick Generator</h2>
-
-      <p>Generate random kendama tricks using filters.</p>
+      <p>Generate random tricks</p>
 
       {/* FILTERS */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -194,30 +186,50 @@ export default function Generator() {
 
       {/* GENERATED LIST */}
       {generatedTricks.length > 0 && (
-        <ul style={{ marginTop: '1rem' }}>
+        <ul style={{ marginTop: '1rem', padding: 0, listStyle: 'none' }}>
           {generatedTricks.map((trick, index) => (
             <li
               key={`${trick}-${index}`}
               style={{
                 display: 'flex',
                 justifyContent: 'space-between',
-                alignItems: 'center'
+                alignItems: 'center',
+                padding: '0.5rem',
+                borderBottom: '1px solid var(--color-border)'
               }}
             >
               <span>{trick}</span>
 
-              <button
-                onClick={() => removeTrick(index)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: 'var(--color-text-secondary)',
-                  cursor: 'pointer',
-                  fontSize: '1.1rem'
-                }}
-              >
-                ×
-              </button>
+              <div style={{ display: 'flex', gap: '0.8rem' }}>
+                {/* Complete Button */}
+                <button
+                  onClick={() => completeTrick(trick, index)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#4caf50',
+                    cursor: 'pointer',
+                    fontSize: '1.1rem'
+                  }}
+                  title="Mark as completed"
+                >
+                  ✓
+                </button>
+                {/* Remove Button */}
+                <button
+                  onClick={() => removeTrick(index)}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: 'var(--color-text-secondary)',
+                    cursor: 'pointer',
+                    fontSize: '1.1rem'
+                  }}
+                  title="Remove from list"
+                >
+                  ×
+                </button>
+              </div>
             </li>
           ))}
         </ul>
