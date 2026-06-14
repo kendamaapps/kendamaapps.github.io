@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router';
 import Navbar from './components/Navbar.jsx';
 import Galaxy from './components/Galaxy.jsx';
 
@@ -6,25 +7,13 @@ import Home from './tabs/Home.jsx';
 import Generator from './tabs/Generator.jsx';
 import Log from './tabs/Log.jsx';
 
-const TABS = {
-  home: Home,
-  generator: Generator,
-  log: Log,
-};
-
 export default function App() {
-  const [activeTab, setActiveTab] = useState('home');
-  
-  // 1. Maintain the uncompleted generated tricks across tab switches
   const [generatedQueue, setGeneratedQueue] = useState([]);
-
-  // 2. Load initial logs from localStorage if they exist
   const [trickHistory, setTrickHistory] = useState(() => {
     const saved = localStorage.getItem('kendama_trick_logs');
     return saved ? JSON.parse(saved) : [];
   });
 
-  // Sync state changes with localStorage
   useEffect(() => {
     localStorage.setItem('kendama_trick_logs', JSON.stringify(trickHistory));
   }, [trickHistory]);
@@ -35,31 +24,13 @@ export default function App() {
       name: trickName,
       timestamp: new Date().toLocaleString(),
     };
-    setTrickHistory(prev => [newEntry, ...prev]);
+    setTrickHistory((prev) => [newEntry, ...prev]);
   };
 
-  const clearLogs = () => {
-    setTrickHistory([]);
-  };
-
-  // Determine which component to render and prepare its required props
-  const TabComponent = TABS[activeTab];
-  const tabProps = {};
-  
-  if (activeTab === 'home') {
-    tabProps.onTabChange = setActiveTab;
-  } else if (activeTab === 'generator') {
-    tabProps.onLogTrick = addLogEntry;
-    // Pass both the state and setter down to the generator
-    tabProps.generatedTricks = generatedQueue;
-    tabProps.setGeneratedTricks = setGeneratedQueue;
-  } else if (activeTab === 'log') {
-    tabProps.logs = trickHistory;
-    tabProps.onClearLogs = clearLogs;
-  }
+  const clearLogs = () => setTrickHistory([]);
 
   return (
-    <>
+    <BrowserRouter>
       <div id="galaxy-bg">
         <Galaxy 
           mouseRepulsion
@@ -76,10 +47,31 @@ export default function App() {
           speed={1.5}
         />
       </div>
-      <Navbar activeTab={activeTab} onTabChange={setActiveTab} />
+      
+      <Navbar />
+
       <main id="app">
-        <TabComponent {...tabProps} />
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route 
+            path="/generator" 
+            element={
+              <Generator 
+                onLogTrick={addLogEntry}
+                generatedTricks={generatedQueue}
+                setGeneratedTricks={setGeneratedQueue}
+              />
+            } 
+          />
+          <Route 
+            path="/log" 
+            element={<Log logs={trickHistory} onClearLogs={clearLogs} />} 
+          />
+          
+          {/* Wildcard catch-all path handling */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
       </main>
-    </>
+    </BrowserRouter>
   );
 }

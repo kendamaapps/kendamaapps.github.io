@@ -23,7 +23,7 @@ export default function Log({ logs = [], onClearLogs }) {
 
       {logs.length === 0 ? (
         <p style={{ color: 'var(--color-text-secondary)' }}>
-          No tricks completed yet. Go hit some lines in the Generator!
+          No tricks logged. Go hit some tricks in the Generator!
         </p>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>

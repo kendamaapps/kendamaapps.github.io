@@ -91,7 +91,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     // This allows generated tricks to persist even if filters change.
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
-  /* =========================
+/* =========================
      ACTIONS
      ========================= */
   function generateTrick() {
@@ -114,6 +114,10 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     removeTrick(index);
   }
 
+  function clearGeneratedQueue() {
+    setGeneratedTricks([]);
+  }
+
   /* =========================
      UI
      ========================= */
@@ -124,60 +128,51 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
 
       {/* FILTERS */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
+        {/* ... (Keep your existing select filter markup here unchanged) ... */}
         <div>
           <label>Event</label>
           <br />
-          <select
-            value={selectedEvent}
-            onChange={e => {
-              setSelectedEvent(e.target.value);
-              setSelectedYear('All');
-              setSelectedDifficulty('All');
-            }}
-          >
-            {events.map(e => (
-              <option key={e} value={e}>{e}</option>
-            ))}
+          <select value={selectedEvent} onChange={e => { setSelectedEvent(e.target.value); setSelectedYear('All'); setSelectedDifficulty('All'); }}>
+            {events.map(e => <option key={e} value={e}>{e}</option>)}
           </select>
         </div>
-
         <div>
           <label>Year</label>
           <br />
-          <select
-            value={selectedYear}
-            onChange={e => {
-              setSelectedYear('All');
-              setSelectedDifficulty('All');
-            }}
-          >
-            {years.map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
+          <select value={selectedYear} onChange={e => { setSelectedYear(e.target.value); setSelectedDifficulty('All'); }}>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
-
         <div>
           <label>Difficulty</label>
           <br />
-          <select
-            value={selectedDifficulty}
-            onChange={e => setSelectedDifficulty(e.target.value)}
-          >
-            {difficulties.map(d => (
-              <option key={d} value={d}>{d}</option>
-            ))}
+          <select value={selectedDifficulty} onChange={e => setSelectedDifficulty(e.target.value)}>
+            {difficulties.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
       </div>
 
-      {/* BUTTON */}
-      <div style={{ marginTop: '1.2rem' }}>
+      {/* BUTTONS ROW */}
+      <div style={{ marginTop: '1.2rem', display: 'flex', gap: '0.75rem' }}>
         <button
           onClick={generateTrick}
           disabled={!availableTricks.length}
         >
           Generate Trick
+        </button>
+
+        <button
+          onClick={clearGeneratedQueue}
+          disabled={!generatedTricks.length}
+          style={{
+            background: 'transparent',
+            border: '1px solid var(--color-border)',
+            color: 'var(--color-text-secondary)',
+            cursor: generatedTricks.length ? 'pointer' : 'not-allowed',
+            opacity: generatedTricks.length ? 1 : 0.5
+          }}
+        >
+          Clear Queue
         </button>
       </div>
 
@@ -186,48 +181,15 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       </p>
 
       {/* GENERATED LIST */}
+      {/* ... (Keep your existing generatedTricks.map block here unchanged) ... */}
       {generatedTricks.length > 0 && (
         <ul style={{ marginTop: '1rem', padding: 0, listStyle: 'none' }}>
           {generatedTricks.map((trick, index) => (
-            <li
-              key={`${trick}-${index}`}
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '0.5rem',
-                borderBottom: '1px solid var(--color-border)'
-              }}
-            >
+            <li key={`${trick}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid var(--color-border)' }}>
               <span>{trick}</span>
-
               <div style={{ display: 'flex', gap: '0.8rem' }}>
-                <button
-                  onClick={() => completeTrick(trick, index)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#4caf50',
-                    cursor: 'pointer',
-                    fontSize: '1.1rem'
-                  }}
-                  title="Mark as completed"
-                >
-                  ✓
-                </button>
-                <button
-                  onClick={() => removeTrick(index)}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--color-text-secondary)',
-                    cursor: 'pointer',
-                    fontSize: '1.1rem'
-                  }}
-                  title="Remove from list"
-                >
-                  ×
-                </button>
+                <button onClick={() => completeTrick(trick, index)} style={{ background: 'transparent', border: 'none', color: '#4caf50', cursor: 'pointer', fontSize: '1.1rem' }} title="Mark as completed">✓</button>
+                <button onClick={() => removeTrick(index)} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: '1.1rem' }} title="Remove from list">×</button>
               </div>
             </li>
           ))}

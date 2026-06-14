@@ -1,35 +1,28 @@
 import { useState } from 'react';
+import { Link, NavLink } from 'react-router'; // 💡 Import modern router components
 
 const TABS = [
-  { id: 'home', label: 'Home' },
-  { id: 'generator', label: 'Generator' },
+  { path: '/', label: 'Home', end: true },          // Path maps to root. 'end' ensures strict matching
+  { path: '/generator', label: 'Generator' },
+  { path: '/log', label: 'Log' },                   // 💡 Added your missing Log tab to the menu list!
 ];
 
-export default function Navbar({ activeTab, onTabChange }) {
+export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
-
-  function handleTabClick(e, id) {
-    e.preventDefault();
-    onTabChange(id);
-    setMenuOpen(false);
-  }
 
   return (
     <header className="navbar">
       <div className="navbar__container">
-        <div
-          className="navbar__brand"
-          role="button"
-          tabIndex={0}
-          onClick={() => onTabChange('home')}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') onTabChange('home');
-          }}
-          style={{ cursor: 'pointer' }}
+        {/* 💡 Use <Link> for the Brand layout instead of onClick/onKeyDown div hacks */}
+        <Link 
+          to="/" 
+          className="navbar__brand" 
+          style={{ textDecoration: 'none', color: 'inherit' }}
+          onClick={() => setMenuOpen(false)}
         >
           <span className="navbar__brand-title">Kendama Apps</span>
           <span className="navbar__brand-sub">Modular kendama toolkit</span>
-        </div>
+        </Link>
 
         <button
           className={`navbar__toggle${menuOpen ? ' is-active' : ''}`}
@@ -46,14 +39,20 @@ export default function Navbar({ activeTab, onTabChange }) {
         <nav id="navbarMenu" className={`navbar__menu${menuOpen ? ' is-active' : ''}`} role="navigation">
           <ul className="navbar__list">
             {TABS.map(tab => (
-              <li key={tab.id} className="navbar__item">
-                <a
-                  href="#"
-                  className={`navbar__link${activeTab === tab.id ? ' active' : ''}`}
-                  onClick={e => handleTabClick(e, tab.id)}
+              <li key={tab.path} className="navbar__item">
+                {/* 💡 <NavLink> auto-toggles the class name if active. 
+                  We use a function in className to combine your custom styling structure.
+                */}
+                <NavLink
+                  to={tab.path}
+                  end={tab.end}
+                  className={({ isActive }) => 
+                    `navbar__link${isActive ? ' active' : ''}`
+                  }
+                  onClick={() => setMenuOpen(false)} // Auto-collapses responsive mobile dropdown menu
                 >
                   {tab.label}
-                </a>
+                </NavLink>
               </li>
             ))}
           </ul>
