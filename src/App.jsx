@@ -51,10 +51,13 @@ export default function App() {
       <Navbar />
 
       <main id="app">
+        {/* App.jsx (Inside <Routes> block) */}
         <Routes>
           <Route path="/" element={<Home />} />
+          
+          {/* 💡 Update this route to accept an optional parameter using the "?" syntax */}
           <Route 
-            path="/generator" 
+            path="/generator/:event?" 
             element={
               <Generator 
                 onLogTrick={addLogEntry}
@@ -63,12 +66,8 @@ export default function App() {
               />
             } 
           />
-          <Route 
-            path="/log" 
-            element={<Log logs={trickHistory} onClearLogs={clearLogs} />} 
-          />
           
-          {/* Wildcard catch-all path handling */}
+          <Route path="/log" element={<Log logs={trickHistory} onClearLogs={clearLogs} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
