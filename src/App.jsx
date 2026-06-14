@@ -6,6 +6,7 @@ import Galaxy from './components/Galaxy.jsx';
 import Home from './tabs/Home.jsx';
 import Generator from './tabs/Generator.jsx';
 import Log from './tabs/Log.jsx';
+import About from './tabs/About.jsx';
 
 // dynamic background layer
 function AppBackground() {
@@ -97,8 +98,6 @@ export default function App() {
       <main id="app">
         <Routes>
           <Route path="/" element={<Home />} />
-          
-          {/* Keep optional parameter fallbacks so basic /generator or /generator/all links don't break */}
           <Route 
             path="/generator" 
             element={
@@ -129,8 +128,10 @@ export default function App() {
               />
             } 
           />
-
           <Route path="/log" element={<Log logs={trickHistory} onClearLogs={clearLogs} />} />
+          
+          <Route path="/about" element={<About />} />
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

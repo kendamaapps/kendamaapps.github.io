@@ -5,6 +5,7 @@ const TABS = [
   { path: '/', label: 'Home', end: true },          // Path maps to root. 'end' ensures strict matching
   { path: '/generator', label: 'Generator' },
   { path: '/log', label: 'Log' },
+  { path: '/about', label: 'About' },
 ];
 
 export default function Navbar() {
