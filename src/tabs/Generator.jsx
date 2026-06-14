@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router';
 import tricks from '../../data/structured_tricks.json';
 
@@ -12,6 +13,25 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const [selectedYear, setSelectedYear] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
   const [availableTricks, setAvailableTricks] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  /* =========================================================================
+     💡 NEW: THEME INTERCEPTOR EFFECT
+     ========================================================================= */
+  useEffect(() => {
+    // Check if the current URL path parameter is exactly 'VanJam'
+    if (selectedEvent === 'Van Jam') {
+      document.body.setAttribute('data-theme', 'vanjam');
+    } else {
+      // Revert instantly to the core blue layout elsewhere
+      document.body.removeAttribute('data-theme');
+    }
+
+    // Safety cleanup rule: removes theme styling if the user unmounts or switches tabs completely
+    return () => {
+      document.body.removeAttribute('data-theme');
+    };
+  }, [selectedEvent]);
 
   /* =========================
      INDEX (FAST EVENT LOOKUP)
@@ -128,7 +148,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-     VIEW 1: CLEAN HOME HUB (No event parameter specified in URL yet)
+     VIEW 1: CLEAN HOME HUB
      ========================================================================= */
   if (!selectedEvent) {
     return (
@@ -136,13 +156,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         <h2>Trick Generator</h2>
         <p style={{ marginBottom: '1.5rem' }}>Select an event to start generating tricks:</p>
         
-        <div 
-          style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', 
-            gap: '1rem'
-          }}
-        >
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: '1rem' }}>
           {events.map((e) => (
             <div
               key={e}
@@ -230,18 +244,24 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       </div>
 
       {/* ACTION BUTTONS ROW */}
-      <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem' }}>
+      <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
         <button onClick={generateTrick} disabled={!availableTricks.length}>
           Generate Trick
         </button>
 
+        {/* 💡 FIXED: Inherits identical colors and themes seamlessly */}
+        <button
+          onClick={() => setIsModalOpen(true)}
+          disabled={!availableTricks.length}
+        >
+          View All Tricks ({availableTricks.length})
+        </button>
+
+        {/* 💡 FIXED: Inherits identical colors and handles disabled states cleanly */}
         <button
           onClick={() => setGeneratedTricks([])}
           disabled={!generatedTricks.length}
           style={{
-            background: 'transparent',
-            border: '1px solid var(--color-border)',
-            color: 'var(--color-text-secondary)',
             cursor: generatedTricks.length ? 'pointer' : 'not-allowed',
             opacity: generatedTricks.length ? 1 : 0.5
           }}
@@ -267,6 +287,49 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
             </li>
           ))}
         </ul>
+      )}
+
+      {/* =========================================================================
+         POPUP MODAL COMPONENT (Wrapped in a Portal to break out of Stacking Contexts)
+         ========================================================================= */}
+      {isModalOpen && createPortal(
+        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            
+            {/* Modal Header */}
+            <div className="modal-header">
+              <div className="modal-title">
+                Active Trick Pool ({availableTricks.length})
+              </div>
+              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
+                &times;
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="modal-body">
+              <div className="modal-meta">
+                Filters: {selectedEvent} • Year: {selectedYear} • Diff: {selectedDifficulty}
+              </div>
+
+              <ul className="modal-list">
+                {availableTricks.map((trick, idx) => (
+                  <li key={`${trick}-${idx}`} className="modal-item">
+                    {idx + 1}. {trick}
+                  </li>
+                ))}
+              </ul>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="modal-footer">
+              <button onClick={() => setIsModalOpen(false)}>
+                Close
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body // 💡 This targets the global HTML body tag
       )}
     </div>
   );
