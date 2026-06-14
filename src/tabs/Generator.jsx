@@ -8,7 +8,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const navigate = useNavigate();
 
   /* =========================================================================
-     FAST EVENT LOOKUP INDEX
+     💡 FAST EVENT LOOKUP INDEX
      ========================================================================= */
   const indexed = useMemo(() => {
     const map = new Map();
@@ -26,7 +26,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, [indexed]);
 
   /* =========================================================================
-     SLUG RESOLVER & VALIDATION
+     💡 SLUG RESOLVER & VALIDATION
      ========================================================================= */
   const selectedEvent = useMemo(() => {
     if (!event) return null;
@@ -39,14 +39,12 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     return matchedOriginalName;
   }, [event, events]);
 
-  // Read year from URL param, fallback to 'All' if not explicitly defined
   const selectedYear = useMemo(() => {
     if (!year) return 'All';
     if (year.toLowerCase() === 'all') return 'All';
     return year;
   }, [year]);
 
-  // Safety trigger: Redirect home if an invalid event slug is typed
   useEffect(() => {
     if (event && !selectedEvent) {
       console.warn(`Event "${event}" is invalid. Redirecting...`);
@@ -59,7 +57,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   /* =========================================================================
-     THEME INTERCEPTOR EFFECT
+     💡 THEME INTERCEPTOR EFFECT
      ========================================================================= */
   const isVanJam = selectedEvent === 'Van Jam';
   const is2026 = selectedYear === '2026' || selectedYear === 'All';
@@ -87,7 +85,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
 
   function handleEventSelect(newEventName) {
     setSelectedDifficulty('All');
-    // Default to 'all' years when switching to a brand new event ecosystem
     updateParamRouting(newEventName, 'all');
   }
 
@@ -145,11 +142,46 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     setAvailableTricks(filtered);
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
+  /* =========================================================================
+     🎲 UNIQUE TRICK GENERATOR LOGIC
+     ========================================================================= */
   function generateTrick() {
-    if (!availableTricks.length) return;
-    const randomIndex = Math.floor(Math.random() * availableTricks.length);
-    const newTrick = availableTricks[randomIndex];
+    const uniqueAvailable = availableTricks.filter(
+      trick => !generatedTricks.includes(trick)
+    );
+
+    if (!uniqueAvailable.length) {
+      alert("All available tricks for these filters are already in the queue!");
+      return;
+    }
+
+    const randomIndex = Math.floor(Math.random() * uniqueAvailable.length);
+    const newTrick = uniqueAvailable[randomIndex];
     setGeneratedTricks(prev => [newTrick, ...prev]);
+  }
+
+  function generateSixTricks() {
+    let uniqueAvailable = availableTricks.filter(
+      trick => !generatedTricks.includes(trick)
+    );
+
+    if (!uniqueAvailable.length) {
+      alert("All available tricks for these filters are already in the queue!");
+      return;
+    }
+
+    const newBatch = [];
+    const count = Math.min(6, uniqueAvailable.length);
+
+    for (let i = 0; i < count; i++) {
+      const randomIndex = Math.floor(Math.random() * uniqueAvailable.length);
+      const chosenTrick = uniqueAvailable[randomIndex];
+      
+      newBatch.push(chosenTrick);
+      uniqueAvailable = uniqueAvailable.filter(t => t !== chosenTrick);
+    }
+
+    setGeneratedTricks(prev => [...newBatch, ...prev]);
   }
 
   function removeTrick(index) {
@@ -282,6 +314,14 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         </button>
 
         <button 
+          onClick={generateSixTricks} 
+          disabled={!availableTricks.length}
+          style={vanJamButtonStyles}
+        >
+          Generate 6 Tricks
+        </button>
+
+        <button 
           onClick={() => setIsModalOpen(true)} 
           disabled={!availableTricks.length}
           style={vanJamButtonStyles}
@@ -302,8 +342,11 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         </button>
       </div>
 
-      <p style={{ marginTop: '1rem' }}>
-        Available tricks: {availableTricks.length}
+      {/* 💡 UPDATED STATS ROW */}
+      <p style={{ marginTop: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
+        Available tricks: <strong style={{ color: 'var(--color-text-primary)' }}>{availableTricks.length}</strong> 
+        &nbsp;•&nbsp; 
+        Queue: <strong style={{ color: 'var(--color-text-primary)' }}>{generatedTricks.length}</strong>
       </p>
 
       {/* GENERATED LIST */}
@@ -373,6 +416,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                   <li key={`${trick}-${idx}`} className="modal-item">{idx + 1}. {trick}</li>
                 ))}
               </ul>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setIsModalOpen(false)} style={vanJamButtonStyles}>Close</button>
             </div>
           </div>
         </div>,
