@@ -56,10 +56,14 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
      💡 THEME INTERCEPTOR EFFECT
      ========================================================================= */
   const isVanJam = selectedEvent === 'Van Jam';
+  
+  // 💡 FIX: Treat "All" as the current year (2026) to prevent CSS variables from breaking
+  const is2026 = selectedYear === '2026' || selectedYear === 'All';
 
   useEffect(() => {
     if (isVanJam) {
-      document.body.setAttribute('data-theme', 'vanjam');
+      // Safely apply the active custom variation string attributes to the document root
+      document.body.setAttribute('data-theme', is2026 ? 'vanjam-2026' : 'vanjam-2025');
     } else {
       document.body.removeAttribute('data-theme');
     }
@@ -67,7 +71,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     return () => {
       document.body.removeAttribute('data-theme');
     };
-  }, [isVanJam]);
+  }, [isVanJam, is2026]);
 
   /* =========================
      YEAR OPTIONS (EVENT-AWARE)
@@ -147,14 +151,21 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     removeTrick(index);
   }
 
-  // Creamy mustard yellow configuration tokens
-  const vanJamColor = '#eec14d';
+  /* =========================================================================
+     🎨 DYNAMIC THEME SYSTEM CONFIGURATION
+     ========================================================================= */
+  const vanJamYellow = '#eec14d';
+  const vanJamGreen = '#b5ca6d'; 
   const vanJamDarkText = '#1a1a1a';
 
+  // Toggle layout components elegantly
+  const activeThemeColor = is2026 ? vanJamGreen : vanJamYellow;
+  const activeBorderColor = is2026 ? '#9cb057' : '#dfb13c';
+
   const vanJamButtonStyles = isVanJam ? {
-    backgroundColor: vanJamColor, 
+    backgroundColor: activeThemeColor, 
     color: vanJamDarkText,            
-    border: '1px solid #dfb13c',
+    border: `1px solid ${activeBorderColor}`,
     fontWeight: '600'
   } : {};
 
@@ -306,11 +317,10 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
               <span>{trick}</span>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 
-                {/* 💡 REPLACED WITH INTERACTIVE SPANS */}
                 <span 
                   onClick={() => completeTrick(trick, index)} 
                   style={{ 
-                    color: isVanJam ? vanJamColor : 'var(--color-text-primary)',
+                    color: isVanJam ? activeThemeColor : 'var(--color-text-primary)',
                     cursor: 'pointer', 
                     fontSize: '1.2rem',
                     userSelect: 'none',
@@ -324,7 +334,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 <span 
                   onClick={() => removeTrick(index)} 
                   style={{ 
-                    color: isVanJam ? vanJamColor : 'var(--color-text-primary)',
+                    color: isVanJam ? activeThemeColor : 'var(--color-text-primary)',
                     cursor: 'pointer', 
                     fontSize: '1.2rem', 
                     opacity: 0.7,

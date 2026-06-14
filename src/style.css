@@ -19,13 +19,14 @@
   --border-radius:     8px;
   --font-family:       system-ui, -apple-system, sans-serif;
 }
-/* ========================================
-   VanJam Vibrant Orange Theme Override
-   ======================================== */
-[data-theme="vanjam"] {
-  --color-background:     #f1aa28; /* Creamy Mustard Yellow */
+
+/* =========================================================================
+   VanJam 2025: Vibrant Orange & Creamy Mustard Yellow Override
+   ========================================================================= */
+[data-theme="vanjam-2025"] {
+  --color-background:     #f1aa28; /* Classic Creamy Mustard Yellow */
   --color-surface:        #e97511; /* Vibrant Deep Orange */
-  --color-surface-card:   rgba(233, 117, 17, 0.85); /* Semitransparent card */
+  --color-surface-card:   rgba(233, 117, 17, 0.85); 
   --color-text-primary:   #ffffff; 
   --color-text-secondary: #ffd5a1; 
   --color-text-body:      #ffe9cf; 
@@ -38,24 +39,67 @@
   overflow-x: hidden;
 }
 
-/* Theme overrides for core UI container cards over the bright orange background */
-[data-theme="vanjam"] .card {
+/* Container structural cards overlaid on top of the layout background */
+[data-theme="vanjam-2025"] .card {
   background: rgba(233, 117, 17, 0.9);
   border: 2px solid var(--color-border);
   box-shadow: 0 8px 32px rgba(185, 84, 0, 0.3);
 }
 
-[data-theme="vanjam"] .card button,
-[data-theme="vanjam"] main button,
-[data-theme="vanjam"] .modal-footer button {
-  color: #e97511 !important;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+/* Button font colors override targeted specifically to match the component tokens */
+[data-theme="vanjam-2025"] .card button,
+[data-theme="vanjam-2025"] main button,
+[data-theme="vanjam-2025"] .modal-footer button {
+  color: #1a1a1a !important; /* High contrast theme text */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-[data-theme="vanjam"] select {
+/* Arrow dropdown indicators */
+[data-theme="vanjam-2025"] select {
   background-image: linear-gradient(45deg, transparent 50%, var(--color-text-primary) 50%),
                     linear-gradient(135deg, var(--color-text-primary) 50%, transparent 50%);
 }
+
+/* =========================================================================
+   VanJam 2026: Vibrant Orange & Olive Green Override
+   ========================================================================= */
+[data-theme="vanjam-2026"] {
+  --color-background:     #b5ca6d; /* Fresh Olive Green (Only change from yellow) */
+  --color-surface:        #e97511; /* Kept Vibrant Deep Orange */
+  --color-surface-card:   rgba(233, 117, 17, 0.85); 
+  --color-text-primary:   #ffffff; 
+  --color-text-secondary: #ffd5a1; 
+  --color-text-body:      #ffe9cf; 
+  --color-border:         #b95400; 
+  --color-primary:        #ffffff; 
+  --color-primary-hover:  #fdfcfa; 
+  
+  background-color: var(--color-background);
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Container structural cards overlaid on top of the layout background */
+[data-theme="vanjam-2026"] .card {
+  background: rgba(233, 117, 17, 0.9);
+  border: 2px solid var(--color-border);
+  box-shadow: 0 8px 32px rgba(185, 84, 0, 0.3);
+}
+
+/* Button font colors override targeted specifically to match the component tokens */
+[data-theme="vanjam-2026"] .card button,
+[data-theme="vanjam-2026"] main button,
+[data-theme="vanjam-2026"] .modal-footer button {
+  color: #1a1a1a !important; /* High contrast theme text */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Arrow dropdown indicators */
+[data-theme="vanjam-2026"] select {
+  background-image: linear-gradient(45deg, transparent 50%, var(--color-text-primary) 50%),
+                    linear-gradient(135deg, var(--color-text-primary) 50%, transparent 50%);
+}
+
 /* Container for the organic liquid shapes */
 .vanjam-bg-container {
   position: fixed;
