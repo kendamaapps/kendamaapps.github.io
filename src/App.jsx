@@ -15,7 +15,10 @@ const TABS = {
 export default function App() {
   const [activeTab, setActiveTab] = useState('home');
   
-  // Load initial logs from localStorage if they exist
+  // 1. Maintain the uncompleted generated tricks across tab switches
+  const [generatedQueue, setGeneratedQueue] = useState([]);
+
+  // 2. Load initial logs from localStorage if they exist
   const [trickHistory, setTrickHistory] = useState(() => {
     const saved = localStorage.getItem('kendama_trick_logs');
     return saved ? JSON.parse(saved) : [];
@@ -28,9 +31,9 @@ export default function App() {
 
   const addLogEntry = (trickName) => {
     const newEntry = {
-      id: crypto.randomUUID(), // unique ID for React lists
+      id: crypto.randomUUID(),
       name: trickName,
-      timestamp: new Date().toLocaleString(), // friendly readable date
+      timestamp: new Date().toLocaleString(),
     };
     setTrickHistory(prev => [newEntry, ...prev]);
   };
@@ -47,6 +50,9 @@ export default function App() {
     tabProps.onTabChange = setActiveTab;
   } else if (activeTab === 'generator') {
     tabProps.onLogTrick = addLogEntry;
+    // Pass both the state and setter down to the generator
+    tabProps.generatedTricks = generatedQueue;
+    tabProps.setGeneratedTricks = setGeneratedQueue;
   } else if (activeTab === 'log') {
     tabProps.logs = trickHistory;
     tabProps.onClearLogs = clearLogs;

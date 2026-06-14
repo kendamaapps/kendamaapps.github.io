@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import tricks from '../../data/structured_tricks.json';
 
-export default function Generator({ onLogTrick }) {
+// Destructure generatedTricks and setGeneratedTricks from props
+export default function Generator({ onLogTrick, generatedTricks = [], setGeneratedTricks }) {
   const [selectedEvent, setSelectedEvent] = useState('All');
   const [selectedYear, setSelectedYear] = useState('All');
   const [selectedDifficulty, setSelectedDifficulty] = useState('All');
 
   const [availableTricks, setAvailableTricks] = useState([]);
-  const [generatedTricks, setGeneratedTricks] = useState([]);
 
   /* =========================
      INDEX (FAST EVENT LOOKUP)
@@ -87,7 +87,8 @@ export default function Generator({ onLogTrick }) {
       }
     }
     setAvailableTricks(filtered);
-    setGeneratedTricks([]);
+    // 💡 REMOVED: setGeneratedTricks([]); 
+    // This allows generated tricks to persist even if filters change.
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
   /* =========================
@@ -108,9 +109,9 @@ export default function Generator({ onLogTrick }) {
 
   function completeTrick(trickName, index) {
     if (onLogTrick) {
-      onLogTrick(trickName); // Send up to App.jsx state
+      onLogTrick(trickName);
     }
-    removeTrick(index); // Clean up UI row
+    removeTrick(index);
   }
 
   /* =========================
@@ -119,7 +120,7 @@ export default function Generator({ onLogTrick }) {
   return (
     <div className="card">
       <h2>Trick Generator</h2>
-      <p>Generate random tricks</p>
+      <p>Generate random kendama tricks using filters.</p>
 
       {/* FILTERS */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
@@ -146,7 +147,7 @@ export default function Generator({ onLogTrick }) {
           <select
             value={selectedYear}
             onChange={e => {
-              setSelectedYear(e.target.value);
+              setSelectedYear('All');
               setSelectedDifficulty('All');
             }}
           >
@@ -201,7 +202,6 @@ export default function Generator({ onLogTrick }) {
               <span>{trick}</span>
 
               <div style={{ display: 'flex', gap: '0.8rem' }}>
-                {/* Complete Button */}
                 <button
                   onClick={() => completeTrick(trick, index)}
                   style={{
@@ -215,7 +215,6 @@ export default function Generator({ onLogTrick }) {
                 >
                   ✓
                 </button>
-                {/* Remove Button */}
                 <button
                   onClick={() => removeTrick(index)}
                   style={{
