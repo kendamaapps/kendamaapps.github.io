@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router'; // 💡 Added useLocation
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router';
 import Navbar from './components/Navbar.jsx';
 import Galaxy from './components/Galaxy.jsx';
 
@@ -10,8 +10,7 @@ import Log from './tabs/Log.jsx';
 // dynamic background layer
 function AppBackground() {
   const location = useLocation();
-  const decodedPath = decodeURIComponent(location.pathname).toLowerCase();
-  const isVanJam = decodedPath === '/generator/van jam';
+  const isVanJam = location.pathname.toLowerCase() === '/generator/vanjam';
 
   if (isVanJam) {
     return (
@@ -88,7 +87,7 @@ export default function App() {
 
   return (
     <BrowserRouter>
-      {/* 💡 2. Replaced the static #galaxy-bg div setup with our new smart component */}
+      {/* reactive background */}
       <AppBackground />
       
       <Navbar />

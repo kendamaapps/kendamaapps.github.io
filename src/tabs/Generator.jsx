@@ -7,35 +7,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const { event } = useParams();
   const navigate = useNavigate();
 
-  // Decode URL parameters safely back to normal text
-  const selectedEvent = event ? decodeURIComponent(event) : null;
-
-  const [selectedYear, setSelectedYear] = useState('All');
-  const [selectedDifficulty, setSelectedDifficulty] = useState('All');
-  const [availableTricks, setAvailableTricks] = useState([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   /* =========================================================================
-     💡 NEW: THEME INTERCEPTOR EFFECT
+     💡 FAST EVENT LOOKUP INDEX
      ========================================================================= */
-  useEffect(() => {
-    // Check if the current URL path parameter is exactly 'VanJam'
-    if (selectedEvent === 'Van Jam') {
-      document.body.setAttribute('data-theme', 'vanjam');
-    } else {
-      // Revert instantly to the core blue layout elsewhere
-      document.body.removeAttribute('data-theme');
-    }
-
-    // Safety cleanup rule: removes theme styling if the user unmounts or switches tabs completely
-    return () => {
-      document.body.removeAttribute('data-theme');
-    };
-  }, [selectedEvent]);
-
-  /* =========================
-     INDEX (FAST EVENT LOOKUP)
-     ========================= */
   const indexed = useMemo(() => {
     const map = new Map();
     for (const entry of tricks) {
@@ -47,41 +21,71 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     return map;
   }, []);
 
-  /* =========================
-     EVENT OPTIONS
-     ========================= */
   const events = useMemo(() => {
     return ['All', ...indexed.keys()];
   }, [indexed]);
+
+  /* =========================================================================
+     💡 SLUG RESOLVER & VALIDATION
+     ========================================================================= */
+  const selectedEvent = useMemo(() => {
+    if (!event) return null;
+    if (event.toLowerCase() === 'all') return 'All';
+
+    const matchedOriginalName = events.find(
+      (e) => e.replace(/\s+/g, '').toLowerCase() === event.toLowerCase()
+    );
+
+    return matchedOriginalName;
+  }, [event, events]);
+
+  // Safety trigger: Redirect home if an invalid slug is typed
+  useEffect(() => {
+    if (event && !selectedEvent) {
+      console.warn(`Event "${event}" is invalid. Redirecting...`);
+      navigate('/generator', { replace: true });
+    }
+  }, [event, selectedEvent, navigate]);
+
+  const [selectedYear, setSelectedYear] = useState('All');
+  const [selectedDifficulty, setSelectedDifficulty] = useState('All');
+  const [availableTricks, setAvailableTricks] = useState([]);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  /* =========================================================================
+     💡 THEME INTERCEPTOR EFFECT
+     ========================================================================= */
+  const isVanJam = selectedEvent === 'Van Jam';
+
+  useEffect(() => {
+    if (isVanJam) {
+      document.body.setAttribute('data-theme', 'vanjam');
+    } else {
+      document.body.removeAttribute('data-theme');
+    }
+
+    return () => {
+      document.body.removeAttribute('data-theme');
+    };
+  }, [isVanJam]);
 
   /* =========================
      YEAR OPTIONS (EVENT-AWARE)
      ========================= */
   const years = useMemo(() => {
     if (!selectedEvent) return ['All'];
-    const base =
-      selectedEvent === 'All'
-        ? tricks
-        : indexed.get(selectedEvent) || [];
+    const base = selectedEvent === 'All' ? tricks : indexed.get(selectedEvent) || [];
     const set = new Set(base.map(e => e.year));
-    return ['All', ...Array.from(set)].sort((a, b) =>
-      a === 'All' ? -1 : b - a
-    );
+    return ['All', ...Array.from(set)].sort((a, b) => (a === 'All' ? -1 : b - a));
   }, [selectedEvent, indexed]);
 
   /* =========================
-     DIFFICULTY OPTIONS (EVENT + YEAR-AWARE)
+     DIFFICULTY OPTIONS
      ========================= */
   const difficulties = useMemo(() => {
     if (!selectedEvent) return ['All'];
-    const base =
-      selectedEvent === 'All'
-        ? tricks
-        : indexed.get(selectedEvent) || [];
-    const filtered =
-      selectedYear === 'All'
-        ? base
-        : base.filter(e => e.year === Number(selectedYear));
+    const base = selectedEvent === 'All' ? tricks : indexed.get(selectedEvent) || [];
+    const filtered = selectedYear === 'All' ? base : base.filter(e => e.year === Number(selectedYear));
     const set = new Set();
     for (const entry of filtered) {
       Object.keys(entry.tricks).forEach(d => set.add(d));
@@ -95,10 +99,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   useEffect(() => {
     if (!selectedEvent) return;
 
-    let base =
-      selectedEvent === 'All'
-        ? tricks
-        : indexed.get(selectedEvent) || [];
+    let base = selectedEvent === 'All' ? tricks : indexed.get(selectedEvent) || [];
 
     if (selectedYear !== 'All') {
       base = base.filter(e => e.year === Number(selectedYear));
@@ -107,9 +108,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     const filtered = [];
     for (const entry of base) {
       for (const [difficulty, list] of Object.entries(entry.tricks)) {
-        const difficultyOk =
-          selectedDifficulty === 'All' ||
-          difficulty === selectedDifficulty;
+        const difficultyOk = selectedDifficulty === 'All' || difficulty === selectedDifficulty;
         if (!difficultyOk) continue;
         filtered.push(...list);
       }
@@ -117,17 +116,18 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     setAvailableTricks(filtered);
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
-  /* =========================
-     ACTIONS
-     ========================= */
+  /* =========================================================================
+     💡 ROUTING ACTION
+     ========================================================================= */
   function handleEventSelect(newEventName) {
     setSelectedYear('All');
     setSelectedDifficulty('All');
     
     if (newEventName === 'All') {
-      navigate('/generator/All');
+      navigate('/generator/all');
     } else {
-      navigate(`/generator/${encodeURIComponent(newEventName)}`);
+      const cleanSlug = newEventName.replace(/\s+/g, '').toLowerCase();
+      navigate(`/generator/${cleanSlug}`);
     }
   }
 
@@ -146,6 +146,17 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     if (onLogTrick) onLogTrick(trickName);
     removeTrick(index);
   }
+
+  // Creamy mustard yellow configuration tokens
+  const vanJamColor = '#eec14d';
+  const vanJamDarkText = '#1a1a1a';
+
+  const vanJamButtonStyles = isVanJam ? {
+    backgroundColor: vanJamColor, 
+    color: vanJamDarkText,            
+    border: '1px solid #dfb13c',
+    fontWeight: '600'
+  } : {};
 
   /* =========================================================================
      VIEW 1: CLEAN HOME HUB
@@ -189,7 +200,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-     VIEW 2: WORKBENCH COMPONENT (Loaded when an event parameter is present)
+     VIEW 2: WORKBENCH COMPONENT
      ========================================================================= */
   return (
     <div className="card">
@@ -245,23 +256,27 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
 
       {/* ACTION BUTTONS ROW */}
       <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <button onClick={generateTrick} disabled={!availableTricks.length}>
+        <button 
+          onClick={generateTrick} 
+          disabled={!availableTricks.length}
+          style={vanJamButtonStyles}
+        >
           Generate Trick
         </button>
 
-        {/* 💡 FIXED: Inherits identical colors and themes seamlessly */}
-        <button
-          onClick={() => setIsModalOpen(true)}
+        <button 
+          onClick={() => setIsModalOpen(true)} 
           disabled={!availableTricks.length}
+          style={vanJamButtonStyles}
         >
           View All Tricks ({availableTricks.length})
         </button>
 
-        {/* 💡 FIXED: Inherits identical colors and handles disabled states cleanly */}
         <button
           onClick={() => setGeneratedTricks([])}
           disabled={!generatedTricks.length}
           style={{
+            ...vanJamButtonStyles,
             cursor: generatedTricks.length ? 'pointer' : 'not-allowed',
             opacity: generatedTricks.length ? 1 : 0.5
           }}
@@ -278,58 +293,77 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       {generatedTricks.length > 0 && (
         <ul style={{ marginTop: '1rem', padding: 0, listStyle: 'none' }}>
           {generatedTricks.map((trick, index) => (
-            <li key={`${trick}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid var(--color-border)' }}>
+            <li 
+              key={`${trick}-${index}`} 
+              style={{ 
+                display: 'flex', 
+                justifyContent: 'space-between', 
+                alignItems: 'center', 
+                padding: '0.5rem', 
+                borderBottom: '1px solid var(--color-border)' 
+              }}
+            >
               <span>{trick}</span>
-              <div style={{ display: 'flex', gap: '0.8rem' }}>
-                <button onClick={() => completeTrick(trick, index)} style={{ background: 'transparent', border: 'none', color: '#4caf50', cursor: 'pointer', fontSize: '1.1rem' }} title="Mark as completed">✓</button>
-                <button onClick={() => removeTrick(index)} style={{ background: 'transparent', border: 'none', color: 'var(--color-text-secondary)', cursor: 'pointer', fontSize: '1.1rem' }} title="Remove from list">×</button>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                
+                {/* 💡 REPLACED WITH INTERACTIVE SPANS */}
+                <span 
+                  onClick={() => completeTrick(trick, index)} 
+                  style={{ 
+                    color: isVanJam ? vanJamColor : 'var(--color-text-primary)',
+                    cursor: 'pointer', 
+                    fontSize: '1.2rem',
+                    userSelect: 'none',
+                    padding: '0 0.2rem'
+                  }} 
+                  title="Mark as completed"
+                >
+                  ✓
+                </span>
+                
+                <span 
+                  onClick={() => removeTrick(index)} 
+                  style={{ 
+                    color: isVanJam ? vanJamColor : 'var(--color-text-primary)',
+                    cursor: 'pointer', 
+                    fontSize: '1.2rem', 
+                    opacity: 0.7,
+                    userSelect: 'none',
+                    padding: '0 0.2rem'
+                  }} 
+                  title="Remove from list"
+                >
+                  ×
+                </span>
+
               </div>
             </li>
           ))}
         </ul>
       )}
 
-      {/* =========================================================================
-         POPUP MODAL COMPONENT (Wrapped in a Portal to break out of Stacking Contexts)
-         ========================================================================= */}
+      {/* POPUP MODAL */}
       {isModalOpen && createPortal(
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            
-            {/* Modal Header */}
             <div className="modal-header">
-              <div className="modal-title">
-                Active Trick Pool ({availableTricks.length})
-              </div>
-              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>
-                &times;
-              </button>
+              <div className="modal-title">Active Trick Pool ({availableTricks.length})</div>
+              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
             </div>
-
-            {/* Modal Body */}
             <div className="modal-body">
-              <div className="modal-meta">
-                Filters: {selectedEvent} • Year: {selectedYear} • Diff: {selectedDifficulty}
-              </div>
-
+              <div className="modal-meta">Filters: {selectedEvent} • Year: {selectedYear} • Diff: {selectedDifficulty}</div>
               <ul className="modal-list">
                 {availableTricks.map((trick, idx) => (
-                  <li key={`${trick}-${idx}`} className="modal-item">
-                    {idx + 1}. {trick}
-                  </li>
+                  <li key={`${trick}-${idx}`} className="modal-item">{idx + 1}. {trick}</li>
                 ))}
               </ul>
             </div>
-
-            {/* Modal Footer */}
             <div className="modal-footer">
-              <button onClick={() => setIsModalOpen(false)}>
-                Close
-              </button>
+              <button onClick={() => setIsModalOpen(false)} style={vanJamButtonStyles}>Close</button>
             </div>
           </div>
         </div>,
-        document.body // 💡 This targets the global HTML body tag
+        document.body
       )}
     </div>
   );
