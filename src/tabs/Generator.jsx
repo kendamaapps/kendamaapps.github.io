@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router';
 import tricks from '../../data/structured_tricks.json';
@@ -6,6 +6,10 @@ import tricks from '../../data/structured_tricks.json';
 export default function Generator({ onLogTrick, generatedTricks = [], setGeneratedTricks }) {
   const { event, year } = useParams();
   const navigate = useNavigate();
+
+  // Timer intervals and accurate clock references
+  const timerRef = useRef(null);
+  const startTimeRef = useRef(0);
 
   /* =========================================================================
      💡 FAST EVENT LOOKUP INDEX
@@ -57,6 +61,17 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   /* =========================================================================
+     ⏱️ TIMER MODE STATES
+     ========================================================================= */
+  const [isTimerMode, setIsTimerMode] = useState(false);
+  const [timerScope, setTimerScope] = useState('6'); // '6' or 'all'
+  const [timerStatus, setTimerStatus] = useState('config'); // 'config' | 'countdown' | 'running' | 'results'
+  const [timerTricks, setTimerTricks] = useState([]);
+  const [currentTimerIndex, setCurrentTimerIndex] = useState(0);
+  const [timeElapsed, setTimeElapsed] = useState(0);
+  const [timerReady, setTimerReady] = useState(false);
+
+  /* =========================================================================
      💡 THEME INTERCEPTOR EFFECT
      ========================================================================= */
   const isVanJam = selectedEvent === 'Van Jam';
@@ -86,6 +101,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   function handleEventSelect(newEventName) {
     setSelectedDifficulty('All');
     updateParamRouting(newEventName, 'all');
+    resetTimerMode();
   }
 
   function handleYearSelect(newYearValue) {
@@ -93,6 +109,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     if (selectedEvent) {
       updateParamRouting(selectedEvent, newYearValue);
     }
+    resetTimerMode();
   }
 
   /* =========================
@@ -131,19 +148,16 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       base = base.filter(e => e.year === Number(selectedYear));
     }
 
-    // 💡 FIX: Use a Set structure to completely catch text duplicates across different difficulties
     const rawSetCollector = new Set();
     for (const entry of base) {
       for (const [difficulty, list] of Object.entries(entry.tricks)) {
         const difficultyOk = selectedDifficulty === 'All' || difficulty === selectedDifficulty;
         if (!difficultyOk) continue;
         
-        // Feed text items into unique collector 
         list.forEach(trickItem => rawSetCollector.add(trickItem));
       }
     }
     
-    // Transform clean collection back to array state
     setAvailableTricks(Array.from(rawSetCollector));
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
@@ -196,6 +210,90 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   function completeTrick(trickName, index) {
     if (onLogTrick) onLogTrick(trickName);
     removeTrick(index);
+  }
+
+  /* =========================================================================
+     ⏱️ SPEEDRUN TIMER RUNTIME CONTROLLERS
+     ========================================================================= */
+  function resetTimerMode() {
+    setIsTimerMode(false);
+    setTimerStatus('config');
+    setTimerTricks([]);
+    setCurrentTimerIndex(0);
+    setTimeElapsed(0);
+    setTimerReady(false);
+    if (timerRef.current) clearInterval(timerRef.current);
+  }
+
+  function initTimerSession() {
+    if (!availableTricks.length) return;
+
+    let pool = [...availableTricks];
+    let selectedSelection = [];
+
+    if (timerScope === '6') {
+      const count = Math.min(6, pool.length);
+      for (let i = 0; i < count; i++) {
+        const randIdx = Math.floor(Math.random() * pool.length);
+        selectedSelection.push(pool[randIdx]);
+        pool.splice(randIdx, 1);
+      }
+    } else {
+      // Display all matching tricks sequentially
+      selectedSelection = pool;
+    }
+
+    setTimerTricks(selectedSelection);
+    setCurrentTimerIndex(0);
+    setTimeElapsed(0);
+    setTimerReady(false);
+    setTimerStatus('countdown');
+  }
+
+  function startActualTimer() {
+    setTimerStatus('running');
+    startTimeRef.current = Date.now();
+    timerRef.current = setInterval(() => {
+      setTimeElapsed(Date.now() - startTimeRef.current);
+    }, 10);
+  }
+
+  function handleTimerTap() {
+    if (timerStatus === 'countdown') {
+      startActualTimer();
+      return;
+    }
+
+    if (timerStatus === 'running') {
+      if (currentTimerIndex < timerTricks.length - 1) {
+        setCurrentTimerIndex(prev => prev + 1);
+      } else {
+        // Complete speedrun
+        clearInterval(timerRef.current);
+        setTimerStatus('results');
+
+        // Formulate structured string for localized storage injection
+        const rawDurationSecs = (timeElapsed / 1000).toFixed(2);
+        const formatLogText = `⏱️ Speedrun [${selectedEvent} - ${selectedYear} - ${selectedDifficulty}]: Finished ${timerTricks.length}/${timerTricks.length} tricks in ${rawDurationSecs}s`;
+        
+        if (onLogTrick) onLogTrick(formatLogText);
+      }
+    }
+  }
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, []);
+
+  function formatTime(ms) {
+    const totalSeconds = Math.floor(ms / 1000);
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    const centiseconds = Math.floor((ms % 1000) / 10);
+    
+    return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
   }
 
   /* =========================================================================
@@ -261,9 +359,10 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
      ========================================================================= */
   return (
     <div className="card">
-      <div style={{ marginBottom: '1rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
         <Link 
           to="/generator" 
+          onClick={resetTimerMode}
           style={{ 
             color: 'var(--color-text-secondary)', 
             textDecoration: 'none',
@@ -275,11 +374,30 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         >
           ← Back to Events
         </Link>
+
+        {/* MODE TOGGLE LINK */}
+        <button
+          onClick={() => {
+            resetTimerMode();
+            setIsTimerMode(!isTimerMode);
+          }}
+          style={{
+            background: 'transparent',
+            border: `1px solid ${isTimerMode ? 'var(--color-primary)' : 'var(--color-border)'}`,
+            color: isTimerMode ? 'var(--color-primary)' : 'var(--color-text-secondary)',
+            padding: '0.4rem 0.8rem',
+            borderRadius: '20px',
+            fontSize: '0.85rem',
+            cursor: 'pointer'
+          }}
+        >
+          {isTimerMode ? '🔄 Normal Mode' : '⏱️ Try Timer Mode'}
+        </button>
       </div>
 
       <h2>{selectedEvent === 'All' ? 'All Events' : selectedEvent}</h2>
       
-      {/* SUB-FILTERS (YEAR & DIFFICULTY) */}
+      {/* FILTER CONTROLS SUBROW */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
         <div>
           <label>Year</label>
@@ -299,7 +417,10 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
           <br />
           <select
             value={selectedDifficulty}
-            onChange={e => setSelectedDifficulty(e.target.value)}
+            onChange={e => {
+              setSelectedDifficulty(e.target.value);
+              resetTimerMode();
+            }}
           >
             {difficulties.map(d => (
               <option key={d} value={d}>{d}</option>
@@ -308,105 +429,131 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         </div>
       </div>
 
-      {/* ACTION BUTTONS ROW */}
-      <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
-        <button 
-          onClick={generateTrick} 
-          disabled={!availableTricks.length}
-          style={vanJamButtonStyles}
-        >
-          Generate Trick
-        </button>
-
-        <button 
-          onClick={generateSixTricks} 
-          disabled={!availableTricks.length}
-          style={vanJamButtonStyles}
-        >
-          Generate 6 Tricks
-        </button>
-
-        <button 
-          onClick={() => setIsModalOpen(true)} 
-          disabled={!availableTricks.length}
-          style={vanJamButtonStyles}
-        >
-          View All Tricks ({availableTricks.length})
-        </button>
-
-        <button
-          onClick={() => setGeneratedTricks([])}
-          disabled={!generatedTricks.length}
-          style={{
-            ...vanJamButtonStyles,
-            cursor: generatedTricks.length ? 'pointer' : 'not-allowed',
-            opacity: generatedTricks.length ? 1 : 0.5
-          }}
-        >
-          Clear Queue
-        </button>
-      </div>
-
-      {/* STATS ROW */}
-      <p style={{ marginTop: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
-        Available unique tricks: <strong style={{ color: 'var(--color-text-primary)' }}>{availableTricks.length}</strong> 
-        &nbsp;•&nbsp; 
-        Queue: <strong style={{ color: 'var(--color-text-primary)' }}>{generatedTricks.length}</strong>
-      </p>
-
-      {/* GENERATED LIST */}
-      {generatedTricks.length > 0 && (
-        <ul style={{ marginTop: '1rem', padding: 0, listStyle: 'none' }}>
-          {generatedTricks.map((trick, index) => (
-            <li 
-              key={`${trick}-${index}`} 
-              style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                padding: '0.5rem', 
-                borderBottom: '1px solid var(--color-border)' 
-              }}
-            >
-              <span>{trick}</span>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                
-                <span 
-                  onClick={() => completeTrick(trick, index)} 
-                  style={{ 
-                    color: isVanJam ? activeThemeColor : 'var(--color-text-primary)',
-                    cursor: 'pointer', 
-                    fontSize: '1.2rem',
-                    userSelect: 'none',
-                    padding: '0 0.2rem'
-                  }} 
-                  title="Mark as completed"
-                >
-                  ✓
-                </span>
-                
-                <span 
-                  onClick={() => removeTrick(index)} 
-                  style={{ 
-                    color: isVanJam ? activeThemeColor : 'var(--color-text-primary)',
-                    cursor: 'pointer', 
-                    fontSize: '1.2rem', 
-                    opacity: 0.7,
-                    userSelect: 'none',
-                    padding: '0 0.2rem'
-                  }} 
-                  title="Remove from list"
-                >
-                  ×
-                </span>
-
+      {/* =========================================================================
+         🎰 RENDERING BLOCK A: TIMER MODE SUBPANEL
+         ========================================================================= */}
+      {isTimerMode && (
+        <div style={{ marginTop: '1.5rem', padding: '1.25rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--color-border)' }}>
+          <h3 style={{ marginTop: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            ⏱️ Speedrun Configurator
+          </h3>
+          
+          {timerStatus === 'config' && (
+            <>
+              <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
+                Select whether you want to race through a standard set of 6 random items or clear the entire matching category pool.
+              </p>
+              
+              <div style={{ margin: '1rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                <span style={{ fontSize: '0.95rem', fontWeight: '500' }}>Target Size:</span>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}>
+                  <input 
+                    type="radio" 
+                    name="scope" 
+                    checked={timerScope === '6'} 
+                    onChange={() => setTimerScope('6')} 
+                  />
+                  6 Random Tricks
+                </label>
+                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}>
+                  <input 
+                    type="radio" 
+                    name="scope" 
+                    checked={timerScope === 'all'} 
+                    onChange={() => setTimerScope('all')} 
+                  />
+                  All Available Pool ({availableTricks.length})
+                </label>
               </div>
-            </li>
-          ))}
-        </ul>
+
+              <button
+                onClick={initTimerSession}
+                disabled={!availableTricks.length}
+                style={{
+                  ...vanJamButtonStyles,
+                  width: '100%',
+                  padding: '0.75rem',
+                  fontSize: '1rem',
+                  marginTop: '0.5rem'
+                }}
+              >
+                Launch Speedrun Track
+              </button>
+            </>
+          )}
+
+          {timerStatus === 'results' && (
+            <div style={{ textAlign: 'center', padding: '0.5rem' }}>
+              <h4 style={{ color: 'var(--color-success)', fontSize: '1.3rem', margin: '0 0 0.5rem 0' }}>🎉 Set Complete!</h4>
+              <p style={{ margin: '0.25rem 0', fontSize: '0.95rem' }}>
+                Cleared <strong>{timerTricks.length}</strong> items in:
+              </p>
+              <div style={{ fontSize: '2.2rem', fontWeight: '700', fontFamily: 'monospace', margin: '0.5rem 0', color: isVanJam ? activeThemeColor : 'var(--color-primary)' }}>
+                {formatTime(timeElapsed)}
+              </div>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+                Activity logged securely to historical index.
+              </p>
+              <button onClick={() => setTimerStatus('config')} style={{ padding: '0.5rem 1rem' }}>
+                Run Again
+              </button>
+            </div>
+          )}
+        </div>
       )}
 
-      {/* POPUP MODAL */}
+      {/* =========================================================================
+         🎲 RENDERING BLOCK B: STANDARD QUEUE WORKBENCH
+         ========================================================================= */}
+      {!isTimerMode && (
+        <>
+          <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+            <button onClick={generateTrick} disabled={!availableTricks.length} style={vanJamButtonStyles}>
+              Generate Trick
+            </button>
+            <button onClick={generateSixTricks} disabled={!availableTricks.length} style={vanJamButtonStyles}>
+              Generate 6 Tricks
+            </button>
+            <button onClick={() => setIsModalOpen(true)} disabled={!availableTricks.length} style={vanJamButtonStyles}>
+              View All Tricks ({availableTricks.length})
+            </button>
+            <button
+              onClick={() => setGeneratedTricks([])}
+              disabled={!generatedTricks.length}
+              style={{
+                ...vanJamButtonStyles,
+                cursor: generatedTricks.length ? 'pointer' : 'not-allowed',
+                opacity: generatedTricks.length ? 1 : 0.5
+              }}
+            >
+              Clear Queue
+            </button>
+          </div>
+
+          <p style={{ marginTop: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
+            Available tricks: <strong style={{ color: 'var(--color-text-primary)' }}>{availableTricks.length}</strong> 
+            &nbsp;•&nbsp; 
+            Queue: <strong style={{ color: isVanJam ? activeThemeColor : 'var(--color-text-primary)' }}>{generatedTricks.length}</strong>
+          </p>
+
+          {/* GENERATED LIST ENGINE */}
+          {generatedTricks.length > 0 && (
+            <ul style={{ marginTop: '1rem', padding: 0, listStyle: 'none' }}>
+              {generatedTricks.map((trick, index) => (
+                <li key={`${trick}-${index}`} style={{ display: 'flex', justifyBetween: 'center', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid var(--color-border)' }}>
+                  <span>{trick}</span>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <span onClick={() => completeTrick(trick, index)} style={{ color: isVanJam ? activeThemeColor : 'var(--color-text-primary)', cursor: 'pointer', fontSize: '1.2rem', userSelect: 'none' }} title="Mark as completed">✓</span>
+                    <span onClick={() => removeTrick(index)} style={{ color: isVanJam ? activeThemeColor : 'var(--color-text-primary)', cursor: 'pointer', fontSize: '1.2rem', opacity: 0.7, userSelect: 'none' }} title="Remove from list">×</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </>
+      )}
+
+      {/* POPUP MODAL COMPONENT PORTAL */}
       {isModalOpen && createPortal(
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -421,6 +568,99 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                   <li key={`${trick}-${idx}`} className="modal-item">{idx + 1}. {trick}</li>
                 ))}
               </ul>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setIsModalOpen(false)} style={vanJamButtonStyles}>Close</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* =========================================================================
+         💥 FULLSCREEN OPAQUE TIMING SCREEN INTERCEPTOR
+         ========================================================================= */}
+      {(timerStatus === 'countdown' || timerStatus === 'running') && createPortal(
+        <div 
+          onClick={handleTimerTap}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 99999,
+            backgroundColor: 'rgba(10, 18, 30, 0.96)',
+            color: '#ffffff',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '2rem 1.5rem',
+            boxSizing: 'border-box',
+            textAlign: 'center',
+            cursor: 'pointer',
+            userSelect: 'none'
+          }}
+        >
+          {/* HEADER ROW BAR */}
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              🏁 Speedrun Track &mdash; {selectedDifficulty}
+            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation(); // Avoid triggering screen click progression
+                resetTimerMode();
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                color: '#fff',
+                padding: '0.4rem 0.8rem',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.85rem'
+              }}
+            >
+              Abort Run
+            </button>
+          </div>
+
+          {/* MAIN TRICK CORE CONTAINER CARD */}
+          <div style={{ maxWidth: '800px' }}>
+            {timerStatus === 'countdown' ? (
+              <div>
+                <h1 style={{ fontSize: '3.5rem', margin: '0 0 1rem 0', color: isVanJam ? activeThemeColor : 'var(--color-primary)' }}>READY</h1>
+                <p style={{ fontSize: '1.4rem', opacity: 0.8, animation: 'pulse 1.5s infinite' }}>
+                  Tap anywhere on the screen to start the clock!
+                </p>
+                <div style={{ marginTop: '2rem', fontSize: '0.95rem', color: 'rgba(255,255,255,0.4)' }}>
+                  Total tricks scheduled: {timerTricks.length}
+                </div>
+              </div>
+            ) : (
+              <div>
+                <div style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', uppercase: 'true' }}>
+                  TRICK {currentTimerIndex + 1} OF {timerTricks.length}
+                </div>
+                <h1 style={{ fontSize: '3.8rem', fontWeight: '800', margin: '0 0 2rem 0', lineHeight: '1.2', letterSpacing: '-0.02em' }}>
+                  {timerTricks[currentTimerIndex]}
+                </h1>
+                <p style={{ fontSize: '1.1rem', color: isVanJam ? activeThemeColor : 'rgba(255,255,255,0.6)' }}>
+                  {currentTimerIndex === timerTricks.length - 1 ? '👉 TAP TO FINISH RUN' : '👉 TAP TO CHASE NEXT TRICK'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* REALTIME COUNTER TIMER FOOTER */}
+          <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '3.5rem', fontWeight: '700', tracking: '0.02em' }}>
+              {formatTime(timeElapsed)}
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+              Centisecond Live System Metrics
             </div>
           </div>
         </div>,
