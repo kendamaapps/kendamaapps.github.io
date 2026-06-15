@@ -43,6 +43,54 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const { event, year } = useParams();
   const navigate = useNavigate();
 
+  // 📝 PASTE YOUR GOOGLE DEPLOYMENT WEB APP URL HERE:
+  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsiVx6nLaWSFbmncdNTKc5_jGyqGoFq_WZ4gmRFUcJAv5JcV7D7NGyB0-vUZg_h6-Vng/exec";
+
+  const [displayName, setDisplayName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitStatus, setSubmitStatus] = useState(null); // null | 'success' | 'error'
+
+  async function submitToGoogleSheets() {
+    if (!displayName.trim()) {
+      alert("Please enter a display name to log your speedrun!");
+      return;
+    }
+
+    setIsSubmitting(true);
+    setSubmitStatus(null);
+
+    const payload = {
+      displayName: displayName.trim(),
+      event: selectedEvent,
+      year: selectedYear,
+      difficulty: selectedDifficulty,
+      seed: speedrunSeed,
+      numTricks: timerTricks.length,
+      completionTime: (timeElapsed / 1000).toFixed(2) // Standardized to precise seconds (e.g., "42.53")
+    };
+
+    try {
+      // Send the tracking payload to your Google Script Web App
+      const response = await fetch(GOOGLE_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors', // Bypasses explicit CORS errors with simple Apps Script macros
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      // Note: 'no-cors' mode returns an opaque response type (status 0).
+      // If the code line didn't throw a catch error, the network packet was successfully sent.
+      setSubmitStatus('success');
+    } catch (error) {
+      console.error("Leaderboard transmission error:", error);
+      setSubmitStatus('error');
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   // Timer intervals and accurate clock references
   const timerRef = useRef(null);
   const startTimeRef = useRef(0);
@@ -296,7 +344,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     setTimerTricks([]);
     setCurrentTimerIndex(0);
     setTimeElapsed(0);
-    setSpeedrunSeed(''); // Forces generation of a new random code next mount
+    setSpeedrunSeed('');
+    setSubmitStatus(null); // Reset sheets feedback layout
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
@@ -660,19 +709,77 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
               <div style={{ fontSize: '2.2rem', fontWeight: '700', fontFamily: 'monospace', margin: '0.5rem 0', color: isVanJam ? activeThemeColor : 'var(--color-primary)' }}>
                 {formatTime(timeElapsed)}
               </div>
-              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
+              <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1.25rem' }}>
                 Track Seed: <strong style={{ fontFamily: 'monospace' }}>{speedrunSeed}</strong>
               </p>
-              
-              {/* 🔄 UPDATE THIS BUTTON BELOW */}
+
+              {/* 📊 LEADERBOARD DATA LOGGING CONTAINER MODULE */}
+              <div style={{ 
+                background: 'rgba(0,0,0,0.2)', 
+                padding: '1rem', 
+                borderRadius: '6px', 
+                border: '1px solid var(--color-border)',
+                marginBottom: '1.5rem',
+                textAlign: 'left'
+              }}>
+                <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.4rem', fontWeight: '600' }}>
+                  Submit Score to Leaderboard
+                </label>
+                
+                {submitStatus !== 'success' ? (
+                  <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
+                    <input 
+                      type="text"
+                      value={displayName}
+                      onChange={(e) => setDisplayName(e.target.value)}
+                      placeholder="Enter your name/handle"
+                      disabled={isSubmitting}
+                      style={{ 
+                        padding: '0.5rem', 
+                        background: 'rgba(255,255,255,0.05)', 
+                        border: '1px solid var(--color-border)', 
+                        borderRadius: '4px', 
+                        color: '#fff',
+                        fontSize: '0.95rem'
+                      }}
+                    />
+                    <button
+                      type="button"
+                      onClick={submitToGoogleSheets}
+                      disabled={isSubmitting || !displayName.trim()}
+                      style={{
+                        ...vanJamButtonStyles,
+                        padding: '0.5rem',
+                        cursor: (isSubmitting || !displayName.trim()) ? 'not-allowed' : 'pointer',
+                        opacity: (isSubmitting || !displayName.trim()) ? 0.6 : 1,
+                        fontSize: '0.9rem'
+                      }}
+                    >
+                      {isSubmitting ? '⌛ Uploading...' : '🚀 Submit Score'}
+                    </button>
+                    {submitStatus === 'error' && (
+                      <small style={{ color: 'var(--color-error)', marginTop: '0.25rem' }}>
+                        ❌ Error uploading score. Please try again.
+                      </small>
+                    )}
+                  </div>
+                ) : (
+                  <div style={{ color: 'var(--color-success)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0' }}>
+                    ✅ Score safely logged directly to Google Sheets!
+                  </div>
+                )}
+              </div>
+
               <button 
                 onClick={() => {
-                  setSpeedrunSeed(''); // Clearing the seed triggers generateNewSeed() via useEffect
+                  setSpeedrunSeed('');   // Clears the seed to trigger a fresh auto-roll
+                  setDisplayName('');    // 🔄 Clear the input name field for the next run
+                  setSubmitStatus(null); // 🔄 Reset the layout status to re-enable the submit button
                   setTimerStatus('config');
                 }} 
-                style={{ padding: '0.5rem 1rem' }}
+                style={{ padding: '0.5rem 1rem', width: '100%' }}
               >
-                Run Again
+                🔄 Run Again (New Seed)
               </button>
             </div>
           )}
