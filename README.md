@@ -2,76 +2,91 @@
 
 A modular kendama toolkit built with React and Vite, featuring an interactive WebGL galaxy background and an organic melting fluid theme engine for Van Jam event modes.
 
-## Features
+---
 
-- **Trick Generator** — Randomly picks a kendama trick to practice with customizable multi-burst modes (Generate 6) and smart deduplication proofing.
-- **Speedrun Mode**
-- **Dynamic Parameter Routing** — Deep-linkable state URLs (e.g., `/generator/vanjam/2026`) that remember your active event configurations.
-- **Activity Log** — Review, clear, and save your successfully completed tricks securely across browser sessions.
-- **Galaxy Background** — Interactive WebGL star field powered by OGL, complete with smooth physics-based mouse repulsion.
-- **Responsive Navbar** — Collapsible hamburger menu built for mobile optimization alongside standard sticky desktop states.
+## 🚀 Features & Project Overview
+
+### ⚙️ Core Application Modules
+
+* **Trick Generator** — Randomly picks a kendama trick to practice with customizable multi-burst modes (Generate 6) and smart deduplication proofing.
+* **Activity Log** — Review, clear, and save your successfully completed tricks securely across browser sessions.
+* **Dynamic Parameter Routing** — Deep-linkable state URLs (e.g., `/generator/vanjam/2026`) that remember your active event configurations.
+* **Responsive Navbar** — Collapsible hamburger menu built for mobile optimization alongside standard sticky desktop states.
 
 ---
 
-## ⚡ Speedrun Mode
+## ⏱️ Competitive Speedrun Engine & Leaderboard
 
-The **Speedrun Mode** is designed for high-intensity practice. It features a distraction-free, fullscreen interface that allows you to cycle through tricks rapidly.
+The **Speedrun/Timer Mode** is designed for high-intensity practice, tricklist memory drills, and competitive speedrunning events (such as VanJam, KWC, and Taiwan Kendama Open presets). It shifts the workbench into a distraction-free, fullscreen interface that allows you to cycle through tricks rapidly.
 
-### Features
-
-* **Flexible Configurator:** Choose between a **6-trick sprint** or a **full-pool challenge** based on your current filters.
-* **Fullscreen Interface:** A high-contrast, immersive view that locks your focus on the current trick.
-* **Dual-Input Triggers:**
-* **Tap/Click:** Use your mouse or touch screen to progress.
-* **Keyboard Support:** Press the **Spacebar** to quickly cycle through tricks or finish your run without needing to reach for the mouse.
-
-
-* **Automatic Logging:** Once a run is completed, your final time is automatically logged to your history.
-
-### Controls
-
-| Action | Input |
-| --- | --- |
-| **Start/Progress/Finish** | `Tap` or `Spacebar` |
-| **Abort Run** | `Abort` button in header |
-
-> **Note:** The `Spacebar` trigger includes a built-in `preventDefault()` action, ensuring the page won't scroll while you are in the middle of a high-speed run.
-
----
-
-### Quick Start
-
+### 🛠️ Quick Start Guide
 1. Select an **Event**, **Year**, and **Difficulty** in the main workbench.
 2. Toggle on **⏱️ Try Timer Mode**.
-3. Select your desired target size.
+3. Select your desired target size (**6-trick sprint** or a **full-pool challenge**).
 4. Click **Launch Speedrun Track**.
-5. Use your **Spacebar** to crush your personal best!
+5. Use your **Spacebar** or click the screen to crush your personal best!
 
-## Tech Stack
+### 🎮 Interface Controls
+| Action | Input | Description |
+| --- | --- | --- |
+| **Start/Progress/Finish** | `Tap` or `Spacebar` | Cycles active wheel. Spacebar blocks page scrolling via `preventDefault()`. |
+| **Abort Run** | `Abort` button | Exits the running setup instantly. |
 
-- [React 19](https://react.dev/) / React Router v7
-- [Vite](https://vitejs.dev/)
-- [OGL](https://github.com/oframe/ogl) — Lightweight WebGL library for the galaxy shader code
+### 🎲 Seed-Based Generation Mechanics
 
-## Getting Started
+To guarantee absolute fairness and reproducibility in competitive matches, the tricklist generator utilizes a **6-digit deterministic random seed**.
 
-```bash
-# Install dependencies
-npm install
+* **How it Works:** When you enter Timer Mode, the application automatically rolls a fresh, random 6-digit code (e.g., `582914`). This number serves as the foundational entropy source for a seeded Pseudo-Random Number Generator (PRNG).
+* **The Fisher-Yates Shuffle:** The PRNG controls a customized Fisher-Yates shuffle algorithm to organize the active trick pool. Because the math is entirely deterministic, **the exact same 6-digit seed will always generate the identical sequence of tricks in the exact same order.**
+* **Shared Competition:** If multiple players clear out their text inputs and manually type in the same 6-digit code, they will race on the exact same random trick list. Leaving the field completely blank will automatically roll a fresh, fully dynamic random tricks.
 
-# Start development server
-npm run dev
+### 🏆 Automated Global Leaderboard (Honor System)
 
-# Build for production
-npm run build
+When a user successfully completes a speedrun session, they can choose to submit their record to the shared community database directly from the results interface.
 
-# Preview production build
-npm run preview
+#### System Architecture Overview
+
+The scoring engine pipes data through a decoupled serverless workflow to keep front-end deployment fast, lightweight, and dependency-free:
+
+```text
+[ React App Layout ]
+         │
+         ▼  (Fetch HTTP POST Payload)
+[ Google Apps Script API Webhook ]  <-- (Secured via GitHub Environment Variables)
+         │
+         ▼  (Append Row Matrix)
+[ Google Sheets Database Log ]
+         │
+         ▼  (Fetch HTTP GET Response)
+[ Global Leaderboard View Hub ] (Separated by Event -> Year -> Difficulty Combinations)
+
 ```
 
-## Project Structure
+#### Logged Metrics
 
-```
+Upon entering a custom player handle and clicking **Submit Score**, the system packages and logs:
+
+* **Timestamp:** The precise date and time the run was certified.
+* **Player Name:** The custom user handle entered at completion.
+* **Event & Year:** The exact competition context (e.g., `Van Jam`, `2026`).
+* **Difficulty:** The filtered trick tier pool configuration.
+* **Track Seed:** The 6-digit key used to generate the layout, allowing other players to audit or challenge the exact same run.
+* **Tricks Cleared:** Total number of items scheduled in the run pool.
+* **Completion Time:** The exact runtime elapsed, formatted down to precise decimal seconds (`SS.CC`).
+
+> ⚠️ **ADMINISTRATIVE POLICY NOTE:** While score tracking runs primarily on an honor system format, the project maintainer reserves the absolute right to delete, clear, or modify any leaderboard submission entry at any time based on their own discretion, justification, or administrative decision (e.g., anti-cheat verification, formatting errors, or cleanup).
+
+---
+
+## 💻 Tech Stack
+
+* **Framework:** [React 19](https://react.dev/) / React Router v7
+* **Build Tool:** [Vite](https://vitejs.dev/)
+* **Graphics Pipeline:** [OGL](https://github.com/oframe/ogl) — Lightweight WebGL library for the galaxy shader code
+
+### Project Structure
+
+```text
 kendama/
 ├── index.html              # Vite entry point & SPA redirect listener
 ├── package.json            # React core dependencies, Router, and OGL configurations
@@ -92,15 +107,37 @@ kendama/
     └── tabs/
         ├── Home.jsx        # Landing dashboard
         ├── Generator.jsx   # Pool selector engine and randomizer workbench
+        ├── Leaderboard.jsx # Sheets API visual records aggregator 
         └── Log.jsx         # LocalStorage audit trail of verified completions
 
 ```
 
-## Deployment & Routing Fixes
+---
+
+## 🛠️ Getting Started
+
+### Installation & Local Setup
+
+```bash
+# Install dependencies
+npm install
+
+# Start development server
+npm run dev
+
+# Build for production
+npm run build
+
+# Preview production build
+npm run preview
+
+```
+
+### Deployment & Routing Configuration
 
 The project deploys automatically to GitHub Pages on every push to `main` via the included GitHub Actions workflow at `.github/workflows/deploy.yml`.
 
-If your site is hosted at a subpath (e.g. `https://you.github.io/kendama-apps/`), update the `base` field in `vite.config.js` to match your repository name:
+If your site is hosted at a subpath (e.g. `https://yourusername.github.io/kendama-apps/`), update the `base` field in `vite.config.js` to match your repository name:
 
 ```js
 export default defineConfig({
@@ -120,11 +157,13 @@ To fix this, the project includes a script inside `public/404.html` paired with 
 2. The internal script catches the deep path, encodes it into a safe custom query parameter, and redirects back to the homepage.
 3. The initialization script inside `index.html` parses that parameter and feeds it instantly back to React Router—preserving the target link seamlessly without breaking browser history.
 
-## Background Mechanics
+---
+
+### 🌌 Background Visual Mechanics
 
 The cosmic field is driven by a custom GLSL fragment shader script. When moving into specific competition scopes (like Van Jam), the application seamlessly shifts hooks to render vector blob morph containers backed by liquid gooey CSS processing matrices.
 
-### Cosmic Configurations (`App.jsx`)
+#### Cosmic Configurations (`App.jsx`)
 
 | Prop | Value | Effect |
 | --- | --- | --- |
