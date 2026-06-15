@@ -238,7 +238,17 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     let pool = [...availableTricks];
     let selectedSelection = [];
 
+    // Fisher-Yates Shuffle Algorithm to ensure randomization
+    const shuffle = (array) => {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+      }
+      return array;
+    };
+
     if (timerScope === '6') {
+      // Pick 6 random tricks
       const count = Math.min(6, pool.length);
       for (let i = 0; i < count; i++) {
         const randIdx = Math.floor(Math.random() * pool.length);
@@ -246,7 +256,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         pool.splice(randIdx, 1);
       }
     } else {
-      selectedSelection = pool;
+      // Take all tricks and shuffle them
+      selectedSelection = shuffle(pool);
     }
 
     setTimerTricks(selectedSelection);
