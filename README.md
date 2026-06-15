@@ -5,10 +5,47 @@ A modular kendama toolkit built with React and Vite, featuring an interactive We
 ## Features
 
 - **Trick Generator** — Randomly picks a kendama trick to practice with customizable multi-burst modes (Generate 6) and smart deduplication proofing.
+- **Speedrun Mode**
 - **Dynamic Parameter Routing** — Deep-linkable state URLs (e.g., `/generator/vanjam/2026`) that remember your active event configurations.
 - **Activity Log** — Review, clear, and save your successfully completed tricks securely across browser sessions.
 - **Galaxy Background** — Interactive WebGL star field powered by OGL, complete with smooth physics-based mouse repulsion.
 - **Responsive Navbar** — Collapsible hamburger menu built for mobile optimization alongside standard sticky desktop states.
+
+---
+
+## ⚡ Speedrun Mode
+
+The **Speedrun Mode** is designed for high-intensity practice. It features a distraction-free, fullscreen interface that allows you to cycle through tricks rapidly.
+
+### Features
+
+* **Flexible Configurator:** Choose between a **6-trick sprint** or a **full-pool challenge** based on your current filters.
+* **Fullscreen Interface:** A high-contrast, immersive view that locks your focus on the current trick.
+* **Dual-Input Triggers:**
+* **Tap/Click:** Use your mouse or touch screen to progress.
+* **Keyboard Support:** Press the **Spacebar** to quickly cycle through tricks or finish your run without needing to reach for the mouse.
+
+
+* **Automatic Logging:** Once a run is completed, your final time is automatically logged to your history.
+
+### Controls
+
+| Action | Input |
+| --- | --- |
+| **Start/Progress/Finish** | `Tap` or `Spacebar` |
+| **Abort Run** | `Abort` button in header |
+
+> **Note:** The `Spacebar` trigger includes a built-in `preventDefault()` action, ensuring the page won't scroll while you are in the middle of a high-speed run.
+
+---
+
+### Quick Start
+
+1. Select an **Event**, **Year**, and **Difficulty** in the main workbench.
+2. Toggle on **⏱️ Try Timer Mode**.
+3. Select your desired target size.
+4. Click **Launch Speedrun Track**.
+5. Use your **Spacebar** to crush your personal best!
 
 ## Tech Stack
 
