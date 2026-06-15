@@ -303,8 +303,13 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   function initTimerSession() {
     if (!availableTricks.length) return;
 
-    // Standardize seed parsing: defaults to '123456' if left empty by the user
-    const finalSeed = speedrunSeed.trim() || '123456';
+    // 🎲 DYNAMIC FALLBACK: If string is blank, create a new random 6-digit code
+    let finalSeed = speedrunSeed.trim();
+    if (!finalSeed) {
+      finalSeed = Math.floor(100000 + Math.random() * 900000).toString();
+      setSpeedrunSeed(finalSeed); // Write it back to the input UI immediately
+    }
+
     const rng = createSeededRandom(finalSeed);
 
     // Deep copy available pool
@@ -602,8 +607,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                     type="text" 
                     maxLength={6}
                     value={speedrunSeed}
-                    onChange={(e) => setSpeedrunSeed(e.target.value.replace(/\D/g, ''))} // Filter non-numeric characters
-                    placeholder="123456"
+                    onChange={(e) => setSpeedrunSeed(e.target.value.replace(/\D/g, ''))} 
+                    placeholder="Random" // Changed from 123456 to Random
                     style={{ 
                       flex: 1, 
                       padding: '0.4rem 0.6rem', 
@@ -658,7 +663,15 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
                 Track Seed: <strong style={{ fontFamily: 'monospace' }}>{speedrunSeed}</strong>
               </p>
-              <button onClick={() => setTimerStatus('config')} style={{ padding: '0.5rem 1rem' }}>
+              
+              {/* 🔄 UPDATE THIS BUTTON BELOW */}
+              <button 
+                onClick={() => {
+                  setSpeedrunSeed(''); // Clearing the seed triggers generateNewSeed() via useEffect
+                  setTimerStatus('config');
+                }} 
+                style={{ padding: '0.5rem 1rem' }}
+              >
                 Run Again
               </button>
             </div>
