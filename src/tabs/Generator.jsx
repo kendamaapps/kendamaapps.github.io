@@ -12,7 +12,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const startTimeRef = useRef(0);
 
   /* =========================================================================
-     💡 FAST EVENT LOOKUP INDEX
+     FAST EVENT LOOKUP INDEX
      ========================================================================= */
   const indexed = useMemo(() => {
     const map = new Map();
@@ -30,7 +30,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, [indexed]);
 
   /* =========================================================================
-     💡 SLUG RESOLVER & VALIDATION
+     SLUG RESOLVER & VALIDATION
      ========================================================================= */
   const selectedEvent = useMemo(() => {
     if (!event) return null;
@@ -69,10 +69,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const [timerTricks, setTimerTricks] = useState([]);
   const [currentTimerIndex, setCurrentTimerIndex] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  const [timerReady, setTimerReady] = useState(false);
 
   /* =========================================================================
-     💡 THEME INTERCEPTOR EFFECT
+     THEME INTERCEPTOR EFFECT
      ========================================================================= */
   const isVanJam = selectedEvent === 'Van Jam';
   const is2026 = selectedYear === '2026' || selectedYear === 'All';
@@ -90,7 +89,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, [isVanJam, is2026]);
 
   /* =========================================================================
-     ⚙️ DYNAMIC PARAM NAVIGATION HANDLERS
+     ⚙️ DYNAMIC PARAM NAVIGATION HANDLERS (Preserve Timer State)
      ========================================================================= */
   function updateParamRouting(eventSlug, yearSlug) {
     const cleanEvent = eventSlug.replace(/\s+/g, '').toLowerCase();
@@ -101,7 +100,10 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   function handleEventSelect(newEventName) {
     setSelectedDifficulty('All');
     updateParamRouting(newEventName, 'all');
-    resetTimerMode();
+    // If running a speedrun track, abort back to config on structural location swaps
+    if (timerStatus === 'countdown' || timerStatus === 'running') {
+      softResetTimerSession();
+    }
   }
 
   function handleYearSelect(newYearValue) {
@@ -109,7 +111,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     if (selectedEvent) {
       updateParamRouting(selectedEvent, newYearValue);
     }
-    resetTimerMode();
+    if (timerStatus === 'countdown' || timerStatus === 'running') {
+      softResetTimerSession();
+    }
   }
 
   /* =========================
@@ -217,11 +221,14 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
      ========================================================================= */
   function resetTimerMode() {
     setIsTimerMode(false);
+    softResetTimerSession();
+  }
+
+  function softResetTimerSession() {
     setTimerStatus('config');
     setTimerTricks([]);
     setCurrentTimerIndex(0);
     setTimeElapsed(0);
-    setTimerReady(false);
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
@@ -239,14 +246,12 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         pool.splice(randIdx, 1);
       }
     } else {
-      // Display all matching tricks sequentially
       selectedSelection = pool;
     }
 
     setTimerTricks(selectedSelection);
     setCurrentTimerIndex(0);
     setTimeElapsed(0);
-    setTimerReady(false);
     setTimerStatus('countdown');
   }
 
@@ -268,13 +273,11 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       if (currentTimerIndex < timerTricks.length - 1) {
         setCurrentTimerIndex(prev => prev + 1);
       } else {
-        // Complete speedrun
         clearInterval(timerRef.current);
         setTimerStatus('results');
 
-        // Formulate structured string for localized storage injection
         const rawDurationSecs = (timeElapsed / 1000).toFixed(2);
-        const formatLogText = `⏱️ Speedrun [${selectedEvent} - ${selectedYear} - ${selectedDifficulty}]: Finished ${timerTricks.length}/${timerTricks.length} tricks in ${rawDurationSecs}s`;
+        const formatLogText = `⏱️ Speedrun [${selectedEvent} - ${selectedYear} - ${selectedDifficulty}]: Finished ${timerTricks.length} tricks in ${rawDurationSecs}s`;
         
         if (onLogTrick) onLogTrick(formatLogText);
       }
@@ -286,6 +289,22 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       if (timerRef.current) clearInterval(timerRef.current);
     };
   }, []);
+
+  /* =========================================================================
+     ⌨️ KEYBOARD SUPPORT (SPACEBAR TRIGGER)
+     ========================================================================= */
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Only trigger if we are currently in an active timer state
+      if ((timerStatus === 'countdown' || timerStatus === 'running') && e.code === 'Space') {
+        e.preventDefault(); // Stop the spacebar from scrolling the page
+        handleTimerTap();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [timerStatus, currentTimerIndex, timerTricks]); // Re-bind when state changes
 
   function formatTime(ms) {
     const totalSeconds = Math.floor(ms / 1000);
@@ -378,8 +397,12 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         {/* MODE TOGGLE LINK */}
         <button
           onClick={() => {
-            resetTimerMode();
-            setIsTimerMode(!isTimerMode);
+            if (isTimerMode) {
+              resetTimerMode();
+            } else {
+              setIsTimerMode(true);
+              softResetTimerSession();
+            }
           }}
           style={{
             background: 'transparent',
@@ -417,10 +440,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
           <br />
           <select
             value={selectedDifficulty}
-            onChange={e => {
-              setSelectedDifficulty(e.target.value);
-              resetTimerMode();
-            }}
+            onChange={e => setSelectedDifficulty(e.target.value)}
           >
             {difficulties.map(d => (
               <option key={d} value={d}>{d}</option>
@@ -441,29 +461,54 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
           {timerStatus === 'config' && (
             <>
               <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
-                Select whether you want to race through a standard set of 6 random items or clear the entire matching category pool.
+                Select whether you want to race through a standard set of 6 random tricks or clear the entire trick list.
               </p>
               
-              <div style={{ margin: '1rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* NEW SEGMENTED CHIP TOGGLE CONTROL CONTAINER */}
+              <div style={{ margin: '1.25rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
                 <span style={{ fontSize: '0.95rem', fontWeight: '500' }}>Target Size:</span>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}>
-                  <input 
-                    type="radio" 
-                    name="scope" 
-                    checked={timerScope === '6'} 
-                    onChange={() => setTimerScope('6')} 
-                  />
-                  6 Random Tricks
-                </label>
-                <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.3rem', cursor: 'pointer' }}>
-                  <input 
-                    type="radio" 
-                    name="scope" 
-                    checked={timerScope === 'all'} 
-                    onChange={() => setTimerScope('all')} 
-                  />
-                  All Available Pool ({availableTricks.length})
-                </label>
+                <div style={{ 
+                  display: 'inline-flex', 
+                  background: 'rgba(255, 255, 255, 0.06)', 
+                  padding: '2px', 
+                  borderRadius: '6px',
+                  border: '1px solid var(--color-border)' 
+                }}>
+                  <button
+                    type="button"
+                    onClick={() => setTimerScope('6')}
+                    style={{
+                      background: timerScope === '6' ? (isVanJam ? activeThemeColor : 'var(--color-primary)') : 'transparent',
+                      color: timerScope === '6' ? (isVanJam ? vanJamDarkText : '#fff') : 'var(--color-text-secondary)',
+                      border: 'none',
+                      padding: '0.4rem 1rem',
+                      borderRadius: '4px',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    6 Tricks
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTimerScope('all')}
+                    style={{
+                      background: timerScope === 'all' ? (isVanJam ? activeThemeColor : 'var(--color-primary)') : 'transparent',
+                      color: timerScope === 'all' ? (isVanJam ? vanJamDarkText : '#fff') : 'var(--color-text-secondary)',
+                      border: 'none',
+                      padding: '0.4rem 1rem',
+                      borderRadius: '4px',
+                      fontSize: '0.85rem',
+                      fontWeight: '600',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                  >
+                    All Tricks ({availableTricks.length})
+                  </button>
+                </div>
               </div>
 
               <button
@@ -540,7 +585,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
           {generatedTricks.length > 0 && (
             <ul style={{ marginTop: '1rem', padding: 0, listStyle: 'none' }}>
               {generatedTricks.map((trick, index) => (
-                <li key={`${trick}-${index}`} style={{ display: 'flex', justifyBetween: 'center', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid var(--color-border)' }}>
+                <li key={`${trick}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid var(--color-border)' }}>
                   <span>{trick}</span>
                   <div style={{ display: 'flex', gap: '1rem' }}>
                     <span onClick={() => completeTrick(trick, index)} style={{ color: isVanJam ? activeThemeColor : 'var(--color-text-primary)', cursor: 'pointer', fontSize: '1.2rem', userSelect: 'none' }} title="Mark as completed">✓</span>
@@ -610,8 +655,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
             </div>
             <button 
               onClick={(e) => {
-                e.stopPropagation(); // Avoid triggering screen click progression
-                resetTimerMode();
+                e.stopPropagation(); 
+                softResetTimerSession();
               }}
               style={{
                 background: 'rgba(255,255,255,0.1)',
@@ -632,8 +677,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
             {timerStatus === 'countdown' ? (
               <div>
                 <h1 style={{ fontSize: '3.5rem', margin: '0 0 1rem 0', color: isVanJam ? activeThemeColor : 'var(--color-primary)' }}>READY</h1>
-                <p style={{ fontSize: '1.4rem', opacity: 0.8, animation: 'pulse 1.5s infinite' }}>
-                  Tap anywhere on the screen to start the clock!
+                <p style={{ fontSize: '1.4rem', opacity: 0.8 }}>
+                  Tap anywhere on the screen or press [SPACE] to start the clock!
                 </p>
                 <div style={{ marginTop: '2rem', fontSize: '0.95rem', color: 'rgba(255,255,255,0.4)' }}>
                   Total tricks scheduled: {timerTricks.length}
@@ -641,14 +686,16 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
               </div>
             ) : (
               <div>
-                <div style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem', uppercase: 'true' }}>
+                <div style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem' }}>
                   TRICK {currentTimerIndex + 1} OF {timerTricks.length}
                 </div>
                 <h1 style={{ fontSize: '3.8rem', fontWeight: '800', margin: '0 0 2rem 0', lineHeight: '1.2', letterSpacing: '-0.02em' }}>
                   {timerTricks[currentTimerIndex]}
                 </h1>
                 <p style={{ fontSize: '1.1rem', color: isVanJam ? activeThemeColor : 'rgba(255,255,255,0.6)' }}>
-                  {currentTimerIndex === timerTricks.length - 1 ? '👉 TAP TO FINISH RUN' : '👉 TAP TO CHASE NEXT TRICK'}
+                  {currentTimerIndex === timerTricks.length - 1 
+                    ? '👉 TAP OR [SPACE] TO FINISH RUN' 
+                    : '👉 TAP OR [SPACE] FOR THE NEXT TRICK'}
                 </p>
               </div>
             )}
@@ -656,7 +703,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
 
           {/* REALTIME COUNTER TIMER FOOTER */}
           <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
-            <div style={{ fontFamily: 'monospace', fontSize: '3.5rem', fontWeight: '700', tracking: '0.02em' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '3.5rem', fontWeight: '700' }}>
               {formatTime(timeElapsed)}
             </div>
             <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
