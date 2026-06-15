@@ -542,13 +542,13 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
             <div style={{ textAlign: 'center', padding: '0.5rem' }}>
               <h4 style={{ color: 'var(--color-success)', fontSize: '1.3rem', margin: '0 0 0.5rem 0' }}>🎉 Set Complete!</h4>
               <p style={{ margin: '0.25rem 0', fontSize: '0.95rem' }}>
-                Cleared <strong>{timerTricks.length}</strong> items in:
+                Cleared <strong>{timerTricks.length}</strong> tricks in:
               </p>
               <div style={{ fontSize: '2.2rem', fontWeight: '700', fontFamily: 'monospace', margin: '0.5rem 0', color: isVanJam ? activeThemeColor : 'var(--color-primary)' }}>
                 {formatTime(timeElapsed)}
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-                Activity logged securely to historical index.
+                Record logged.
               </p>
               <button onClick={() => setTimerStatus('config')} style={{ padding: '0.5rem 1rem' }}>
                 Run Again
