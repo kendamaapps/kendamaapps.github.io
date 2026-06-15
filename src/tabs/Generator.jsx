@@ -44,7 +44,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const navigate = useNavigate();
 
   // 📝 PASTE YOUR GOOGLE DEPLOYMENT WEB APP URL HERE:
-  const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwsiVx6nLaWSFbmncdNTKc5_jGyqGoFq_WZ4gmRFUcJAv5JcV7D7NGyB0-vUZg_h6-Vng/exec";
+  const GOOGLE_SCRIPT_URL = import.meta.env ? import.meta.env.VITE_GOOGLE_SCRIPT_URL : process.env.REACT_APP_GOOGLE_SCRIPT_URL;
 
   const [displayName, setDisplayName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

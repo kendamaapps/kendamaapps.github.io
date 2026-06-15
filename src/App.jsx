@@ -6,6 +6,7 @@ import Galaxy from './components/Galaxy.jsx';
 import Home from './tabs/Home.jsx';
 import Generator from './tabs/Generator.jsx';
 import Log from './tabs/Log.jsx';
+import Leaderboard from './tabs/Leaderboard';
 import About from './tabs/About.jsx';
 
 // dynamic background layer
@@ -129,6 +130,9 @@ export default function App() {
             } 
           />
           <Route path="/log" element={<Log logs={trickHistory} onClearLogs={clearLogs} />} />
+          
+          <Route path="/leaderboard" element={<Leaderboard />} />
+          <Route path="/leaderboard/:eventSlug" element={<Leaderboard />} />
           
           <Route path="/about" element={<About />} />
 
