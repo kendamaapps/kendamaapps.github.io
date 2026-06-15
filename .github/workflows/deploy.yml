@@ -32,6 +32,8 @@ jobs:
         run: npm ci
 
       - name: Build
+        env:
+            VITE_GOOGLE_SCRIPT_URL: ${{ vars.VITE_GOOGLE_SCRIPT_URL }}
         run: npm run build
 
       - name: Upload Pages Artifact
