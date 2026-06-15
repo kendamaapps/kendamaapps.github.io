@@ -805,7 +805,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
           </div>
 
           {/* MAIN TRICK CORE CONTAINER CARD */}
-          <div style={{ maxWidth: '800px' }}>
+          {/* MAIN TRICK CORE CONTAINER CARD (WHEEL DESIGN) */}
+          <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
             {timerStatus === 'countdown' ? (
               <div>
                 <h1 style={{ fontSize: '3.5rem', margin: '0 0 1rem 0', color: isVanJam ? activeThemeColor : 'var(--color-primary)' }}>READY</h1>
@@ -817,14 +818,71 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 </div>
               </div>
             ) : (
-              <div>
-                <div style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.5rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.5)', marginBottom: '1.5rem' }}>
                   TRICK {currentTimerIndex + 1} OF {timerTricks.length}
                 </div>
-                <h1 style={{ fontSize: '3.8rem', fontWeight: '800', margin: '0 0 2rem 0', lineHeight: '1.2', letterSpacing: '-0.02em' }}>
-                  {timerTricks[currentTimerIndex]}
-                </h1>
-                <p style={{ fontSize: '1.1rem', color: isVanJam ? activeThemeColor : 'rgba(255,255,255,0.6)' }}>
+
+                {/* 🎡 THE VERTICAL WHEEL CONTAINER */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  minHeight: '260px', 
+                  position: 'relative'
+                }}>
+                  
+                  {/* PREVIOUS TRICK (ABOVE) */}
+                  <div style={{ 
+                    fontSize: '2rem', 
+                    fontWeight: '600', 
+                    opacity: 0.2, // Highly transparent
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '90vw',
+                    marginBottom: '0.5rem',
+                    transform: 'scale(0.85)'
+                  }}>
+                    {currentTimerIndex > 0 ? timerTricks[currentTimerIndex - 1] : ' '}
+                  </div>
+
+                  {/* CURRENT ACTIVE TRICK (CENTER) */}
+                  <h1 style={{ 
+                    fontSize: '3.8rem', 
+                    fontWeight: '800', 
+                    margin: '0.5rem 0', 
+                    lineHeight: '1.2', 
+                    letterSpacing: '-0.02em',
+                    transition: 'all 0.2s ease',
+                    maxWidth: '95vw',
+                    wordBreak: 'break-word'
+                  }}>
+                    {timerTricks[currentTimerIndex]}
+                  </h1>
+
+                  {/* NEXT TRICK (BELOW) */}
+                  <div style={{ 
+                    fontSize: '2rem', 
+                    fontWeight: '600', 
+                    opacity: 0.2, // Highly transparent
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '90vw',
+                    marginTop: '0.5rem',
+                    transform: 'scale(0.85)'
+                  }}>
+                    {currentTimerIndex < timerTricks.length - 1 ? timerTricks[currentTimerIndex + 1] : '🏁 [FINISH]'}
+                  </div>
+
+                </div>
+
+                {/* INTERACTION PROMPT FOOTER */}
+                <p style={{ fontSize: '1.1rem', color: isVanJam ? activeThemeColor : 'rgba(255,255,255,0.6)', marginTop: '2.5rem' }}>
                   {currentTimerIndex === timerTricks.length - 1 
                     ? '👉 TAP OR [SPACE] TO FINISH RUN' 
                     : '👉 TAP OR [SPACE] FOR THE NEXT TRICK'}
