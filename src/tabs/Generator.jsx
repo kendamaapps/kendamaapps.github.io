@@ -3,6 +3,42 @@ import { createPortal } from 'react-dom';
 import { useParams, useNavigate, Link } from 'react-router';
 import tricks from '../../data/structured_tricks.json';
 
+/* =========================================================================
+   🎲 DETERMINISTIC SEEDED PRNG ENGINE (SFC32 + MurmurHash3)
+   ========================================================================= */
+function createSeededRandom(seedString) {
+  // Hash the seed string into four 32-bit integers
+  let h = 1779033703 ^ seedString.length;
+  for (let i = 0; i < seedString.length; i++) {
+    h = Math.imul(h ^ seedString.charCodeAt(i), 3432918353);
+    h = (h << 13) | (h >>> 19);
+  }
+  
+  const defineState = () => {
+    h = Math.imul(h ^ (h >>> 16), 2246822507);
+    h = Math.imul(h ^ (h >>> 13), 3266489909);
+    return (h ^= h >>> 16) >>> 0;
+  };
+
+  let a = defineState();
+  let b = defineState();
+  let c = defineState();
+  let d = defineState();
+
+  // Return SFC32 random function (returns 0.0 to 1.0 predictably)
+  return function () {
+    a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
+    let t = (a + b) | 0;
+    a = b ^ (b >>> 9);
+    b = (c + (c << 3)) | 0;
+    c = (c << 21) | (c >>> 11);
+    d = (d + 1) | 0;
+    t = (t + d) | 0;
+    c = (c + t) | 0;
+    return (t >>> 0) / 4294967296;
+  };
+}
+
 export default function Generator({ onLogTrick, generatedTricks = [], setGeneratedTricks }) {
   const { event, year } = useParams();
   const navigate = useNavigate();
@@ -26,7 +62,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, []);
 
   const events = useMemo(() => {
-    // Define the custom priority list (Lower number = Higher placement)
     const priority = {
       'Van Jam': 1,
       'Kendama World Cup': 2,
@@ -34,18 +69,18 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     };
 
     const sortedKeys = Array.from(indexed.keys()).sort((a, b) => {
-      const priorityA = priority[a] || 99; // Default to 99 if not in priority list
+      const priorityA = priority[a] || 99;
       const priorityB = priority[b] || 99;
 
       if (priorityA !== priorityB) {
-        return priorityA - priorityB; // Sort by priority
+        return priorityA - priorityB;
       }
-      return a.localeCompare(b); // Alphabetical for everything else
+      return a.localeCompare(b);
     });
 
     return ['All', ...sortedKeys];
   }, [indexed]);
-  
+
   /* =========================================================================
      SLUG RESOLVER & VALIDATION
      ========================================================================= */
@@ -86,6 +121,21 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const [timerTricks, setTimerTricks] = useState([]);
   const [currentTimerIndex, setCurrentTimerIndex] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
+  
+  // Custom seed states
+  const [speedrunSeed, setSpeedrunSeed] = useState('');
+
+  // Automatically roll a fresh random 6-digit seed when entering config mode
+  useEffect(() => {
+    if (timerStatus === 'config' && !speedrunSeed) {
+      generateNewSeed();
+    }
+  }, [timerStatus]);
+
+  function generateNewSeed() {
+    const freshSeed = Math.floor(100000 + Math.random() * 900000).toString();
+    setSpeedrunSeed(freshSeed);
+  }
 
   /* =========================================================================
      THEME INTERCEPTOR EFFECT
@@ -117,7 +167,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   function handleEventSelect(newEventName) {
     setSelectedDifficulty('All');
     updateParamRouting(newEventName, 'all');
-    // If running a speedrun track, abort back to config on structural location swaps
     if (timerStatus === 'countdown' || timerStatus === 'running') {
       softResetTimerSession();
     }
@@ -179,11 +228,12 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       }
     }
     
-    setAvailableTricks(Array.from(rawSetCollector));
+    // Sort array elements structurally before processing to guarantee uniform indices across separate clients
+    setAvailableTricks(Array.from(rawSetCollector).sort());
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
   /* =========================================================================
-     🎲 UNIQUE TRICK GENERATOR LOGIC
+     🎲 UNIQUE TRICK GENERATOR LOGIC (Standard Mode keeps native Math.random)
      ========================================================================= */
   function generateTrick() {
     const uniqueAvailable = availableTricks.filter(
@@ -234,7 +284,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-     ⏱️ SPEEDRUN TIMER RUNTIME CONTROLLERS
+     ⏱️ SPEEDRUN TIMER RUNTIME CONTROLLERS (Seeded & Deterministic)
      ========================================================================= */
   function resetTimerMode() {
     setIsTimerMode(false);
@@ -246,35 +296,39 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     setTimerTricks([]);
     setCurrentTimerIndex(0);
     setTimeElapsed(0);
+    setSpeedrunSeed(''); // Forces generation of a new random code next mount
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
   function initTimerSession() {
     if (!availableTricks.length) return;
 
+    // Standardize seed parsing: defaults to '123456' if left empty by the user
+    const finalSeed = speedrunSeed.trim() || '123456';
+    const rng = createSeededRandom(finalSeed);
+
+    // Deep copy available pool
     let pool = [...availableTricks];
     let selectedSelection = [];
 
-    // Fisher-Yates Shuffle Algorithm to ensure randomization
-    const shuffle = (array) => {
+    // Seeded Fisher-Yates Shuffle implementation
+    const seededShuffle = (array) => {
       for (let i = array.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = Math.floor(rng() * (i + 1));
         [array[i], array[j]] = [array[j], array[i]];
       }
       return array;
     };
 
     if (timerScope === '6') {
-      // Pick 6 random tricks
       const count = Math.min(6, pool.length);
       for (let i = 0; i < count; i++) {
-        const randIdx = Math.floor(Math.random() * pool.length);
+        const randIdx = Math.floor(rng() * pool.length);
         selectedSelection.push(pool[randIdx]);
         pool.splice(randIdx, 1);
       }
     } else {
-      // Take all tricks and shuffle them
-      selectedSelection = shuffle(pool);
+      selectedSelection = seededShuffle(pool);
     }
 
     setTimerTricks(selectedSelection);
@@ -305,7 +359,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         setTimerStatus('results');
 
         const rawDurationSecs = (timeElapsed / 1000).toFixed(2);
-        const formatLogText = `⏱️ Speedrun [${selectedEvent} - ${selectedYear} - ${selectedDifficulty}]: Finished ${timerTricks.length} tricks in ${rawDurationSecs}s`;
+        const formatLogText = `⏱️ Speedrun [${selectedEvent} - ${selectedYear} - ${selectedDifficulty}] (Seed: ${speedrunSeed}): Finished ${timerTricks.length} tricks in ${rawDurationSecs}s`;
         
         if (onLogTrick) onLogTrick(formatLogText);
       }
@@ -323,16 +377,15 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
      ========================================================================= */
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Only trigger if we are currently in an active timer state
       if ((timerStatus === 'countdown' || timerStatus === 'running') && e.code === 'Space') {
-        e.preventDefault(); // Stop the spacebar from scrolling the page
+        e.preventDefault(); 
         handleTimerTap();
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [timerStatus, currentTimerIndex, timerTricks]); // Re-bind when state changes
+  }, [timerStatus, currentTimerIndex, timerTricks]);
 
   function formatTime(ms) {
     const totalSeconds = Math.floor(ms / 1000);
@@ -492,8 +545,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 Select whether you want to race through a standard set of 6 random tricks or clear the entire trick list.
               </p>
               
-              {/* NEW SEGMENTED CHIP TOGGLE CONTROL CONTAINER */}
-              <div style={{ margin: '1.25rem 0', display: 'flex', alignItems: 'center', gap: '1rem' }}>
+              {/* SEGMENTED CHIP TOGGLE CONTROL CONTAINER */}
+              <div style={{ margin: '1.25rem 0', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.95rem', fontWeight: '500' }}>Target Size:</span>
                 <div style={{ 
                   display: 'inline-flex', 
@@ -539,6 +592,44 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 </div>
               </div>
 
+              {/* 💡 NEW SEED INTERACTION INTERFACE */}
+              <div style={{ marginBottom: '1.5rem', background: 'rgba(0,0,0,0.15)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
+                <label style={{ fontSize: '0.85rem', display: 'block', color: 'var(--color-text-secondary)', marginBottom: '0.4rem', fontWeight: '600' }}>
+                  Competition Track Seed (6 Digits)
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <input 
+                    type="text" 
+                    maxLength={6}
+                    value={speedrunSeed}
+                    onChange={(e) => setSpeedrunSeed(e.target.value.replace(/\D/g, ''))} // Filter non-numeric characters
+                    placeholder="123456"
+                    style={{ 
+                      flex: 1, 
+                      padding: '0.4rem 0.6rem', 
+                      background: 'rgba(255,255,255,0.05)', 
+                      border: '1px solid var(--color-border)', 
+                      borderRadius: '4px', 
+                      color: '#fff',
+                      fontFamily: 'monospace',
+                      fontSize: '1rem',
+                      letterSpacing: '2px',
+                      textAlign: 'center'
+                    }}
+                  />
+                  <button 
+                    type="button"
+                    onClick={generateNewSeed}
+                    style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', cursor: 'pointer', background: 'rgba(255,255,255,0.1)', border: '1px solid var(--color-border)', color: '#fff', borderRadius: '4px' }}
+                  >
+                    🎲 Reroll
+                  </button>
+                </div>
+                <small style={{ display: 'block', marginTop: '0.4rem', color: 'rgba(255,255,255,0.4)', fontSize: '0.75rem' }}>
+                  Share this code with others to race head-to-head on the exact same randomized tricks!
+                </small>
+              </div>
+
               <button
                 onClick={initTimerSession}
                 disabled={!availableTricks.length}
@@ -565,7 +656,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 {formatTime(timeElapsed)}
               </div>
               <p style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', marginBottom: '1rem' }}>
-                Record logged.
+                Track Seed: <strong style={{ fontFamily: 'monospace' }}>{speedrunSeed}</strong>
               </p>
               <button onClick={() => setTimerStatus('config')} style={{ padding: '0.5rem 1rem' }}>
                 Run Again
@@ -679,7 +770,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
           {/* HEADER ROW BAR */}
           <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              🏁 Speedrun Track &mdash; {selectedDifficulty}
+              🏁 Speedrun Track &mdash; {selectedDifficulty} (Seed: {speedrunSeed})
             </div>
             <button 
               onClick={(e) => {
