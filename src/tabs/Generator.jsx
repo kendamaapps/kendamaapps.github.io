@@ -26,9 +26,26 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, []);
 
   const events = useMemo(() => {
-    return ['All', ...indexed.keys()];
-  }, [indexed]);
+    // Define the custom priority list (Lower number = Higher placement)
+    const priority = {
+      'Van Jam': 1,
+      'Kendama World Cup': 2,
+      'Taiwan Kendama Open': 3
+    };
 
+    const sortedKeys = Array.from(indexed.keys()).sort((a, b) => {
+      const priorityA = priority[a] || 99; // Default to 99 if not in priority list
+      const priorityB = priority[b] || 99;
+
+      if (priorityA !== priorityB) {
+        return priorityA - priorityB; // Sort by priority
+      }
+      return a.localeCompare(b); // Alphabetical for everything else
+    });
+
+    return ['All', ...sortedKeys];
+  }, [indexed]);
+  
   /* =========================================================================
      SLUG RESOLVER & VALIDATION
      ========================================================================= */
