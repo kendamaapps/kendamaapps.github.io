@@ -122,7 +122,7 @@ export default function About() {
             onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
             onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
           >
-            <KofiIcon /> Buy me a coffee on Ko-fi
+            <KofiIcon /> Buy me a string pack on Ko-fi
           </a>
         </div>
 
