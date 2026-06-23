@@ -2,3 +2,5 @@ node_modules
 processed_tricklists
 private-docs.md
 .env
+.vscode
+.DS_Store
