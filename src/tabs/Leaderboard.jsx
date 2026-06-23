@@ -69,25 +69,28 @@ export default function Leaderboard() {
     // Filter down to rows belonging only to this specific event
     const eventRows = rawScores.filter(score => score.event === selectedEventName);
 
-    // Identify all unique combinations of Year + Difficulty present in data
+    // Identify all unique combinations of Year + Difficulty + NumTricks present in data
     const combos = [];
     eventRows.forEach(row => {
-      const match = combos.find(c => c.year === row.year && c.difficulty === row.difficulty);
+      const match = combos.find(
+        c => c.year === row.year && c.difficulty === row.difficulty && c.numTricks === row.numTricks
+      );
       if (!match) {
-        combos.push({ year: row.year, difficulty: row.difficulty });
+        combos.push({ year: row.year, difficulty: row.difficulty, numTricks: row.numTricks });
       }
     });
 
-    // Sort combinations: Year descending, then Difficulty alphabetically
+    // Sort combinations: Year descending, Difficulty alphabetically, then NumTricks ascending
     combos.sort((a, b) => {
       if (b.year !== a.year) return b.year.localeCompare(a.year);
-      return a.difficulty.localeCompare(b.difficulty);
+      if (a.difficulty !== b.difficulty) return a.difficulty.localeCompare(b.difficulty);
+      return (a.numTricks || 0) - (b.numTricks || 0);
     });
 
     // For each combo group, extract scores, sort ascending by time, and slice top 10 records
     return combos.map(combo => {
       const groupScores = eventRows
-        .filter(row => row.year === combo.year && row.difficulty === combo.difficulty)
+        .filter(row => row.year === combo.year && row.difficulty === combo.difficulty && row.numTricks === combo.numTricks)
         .sort((a, b) => a.completionTime - b.completionTime) // Fast times go to top
         .slice(0, 10); // Elite Top 10 focus representation
 
@@ -129,7 +132,7 @@ export default function Leaderboard() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
             {separatedLeaderboards.map((board, idx) => (
               <div 
-                key={`${board.year}-${board.difficulty}-${idx}`}
+                key={`${board.year}-${board.difficulty}-${board.numTricks}-${idx}`}
                 style={{ 
                   background: 'rgba(255, 255, 255, 0.02)', 
                   border: '1px solid var(--color-border)', 
@@ -138,10 +141,7 @@ export default function Leaderboard() {
                 }}
               >
                 <h3 style={{ margin: '0 0 1rem 0', color: selectedEventName === 'Van Jam' ? '#eec14d' : 'var(--color-primary)', fontSize: '1.2rem', borderBottom: '1px dashed var(--color-border)', paddingBottom: '0.5rem' }}>
-                  📅 {board.year} &bull; {board.difficulty.toUpperCase()} 
-                  <span style={{ fontSize: '0.85rem', color: 'var(--color-text-secondary)', fontWeight: '400', marginLeft: '0.5rem' }}>
-                    ({board.scores[0]?.numTricks || 0} Tricks Pool)
-                  </span>
+                  📅 {board.year} &bull; {board.difficulty.toUpperCase()} &bull; {board.numTricks || 0} Tricks
                 </h3>
 
                 <div style={{ overflowX: 'auto' }}>
