@@ -78,6 +78,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         },
         body: JSON.stringify(payload)
       });
+      // Note: 'no-cors' mode returns an opaque response type (status 0).
+      // If the code line didn't throw a catch error, the network packet was successfully sent.
       setSubmitStatus('success');
     } catch (error) {
       console.error("Leaderboard transmission error:", error);
@@ -789,6 +791,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         </div>
       )}
 
+      {/* =========================================================================
+         🎲 RENDERING BLOCK B: STANDARD QUEUE WORKBENCH
+         ========================================================================= */}
       {!isTimerMode && (
         <>
           <div style={{ marginTop: '1.5rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
