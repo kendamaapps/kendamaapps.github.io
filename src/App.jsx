@@ -4,7 +4,7 @@ import Navbar from './components/Navbar.jsx';
 import Galaxy from './components/Galaxy.jsx';
 
 import Home from './tabs/Home.jsx';
-import Generator from './tabs/Generator.jsx';
+import Generator from './tabs/generator/Generator.jsx';
 import Log from './tabs/Log.jsx';
 import Leaderboard from './tabs/Leaderboard';
 import About from './tabs/About.jsx';
