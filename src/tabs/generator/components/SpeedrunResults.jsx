@@ -83,7 +83,7 @@ export default function SpeedrunResults({
           </div>
         ) : (
           <div style={{ color: 'var(--color-success)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0' }}>
-            ✅ Score safely logged directly to Google Sheets!
+            ✅ Score logged to leaderboard successfully!
           </div>
         )}
       </div>
