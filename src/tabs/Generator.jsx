@@ -7,7 +7,6 @@ import tricks from '../../data/structured_tricks.json';
    🎲 DETERMINISTIC SEEDED PRNG ENGINE (SFC32 + MurmurHash3)
    ========================================================================= */
 function createSeededRandom(seedString) {
-  // Hash the seed string into four 32-bit integers
   let h = 1779033703 ^ seedString.length;
   for (let i = 0; i < seedString.length; i++) {
     h = Math.imul(h ^ seedString.charCodeAt(i), 3432918353);
@@ -25,7 +24,6 @@ function createSeededRandom(seedString) {
   let c = defineState();
   let d = defineState();
 
-  // Return SFC32 random function (returns 0.0 to 1.0 predictably)
   return function () {
     a >>>= 0; b >>>= 0; c >>>= 0; d >>>= 0;
     let t = (a + b) | 0;
@@ -39,16 +37,60 @@ function createSeededRandom(seedString) {
   };
 }
 
+/* =========================================================================
+   🎯 VAN JAM VIRTUAL DIFFICULTY MAPPER
+   Maps 6 user-facing difficulty labels → real JSON keys (or combined lists).
+   ========================================================================= */
+const VAN_JAM_DIFFICULTY_MAP = {
+  'Casual - Prelim'     :  ['Casual Speed Ladder'],
+  'Casual - Top 16'     :  ['Casual Speed Ladder - Top 16'],
+  'Casual (Full)'       :  ['Casual Speed Ladder', 'Casual Speed Ladder - Top 16'],
+  'Competitive - Prelim':  ['Competitive Speed Ladder'],
+  'Competitive - Top 16':  ['Competitive Speed Ladder - Top 16'],
+  'Competitive (Full)'  :  ['Competitive Speed Ladder', 'Competitive Speed Ladder - Top 16'],
+};
+
+const VAN_JAM_VIRTUAL_DIFFICULTIES = Object.keys(VAN_JAM_DIFFICULTY_MAP);
+
+function isVanJamEvent(eventName) {
+  return eventName === 'Van Jam';
+}
+
+/**
+ * Given a set of entry objects (from structured_tricks.json) and a difficulty label,
+ * returns the deduplicated, sorted trick array for that difficulty.
+ * For Van Jam events, translates virtual labels → real JSON keys.
+ * For other events, uses the label directly.
+ */
+function getTricksForDifficulty(entries, difficultyLabel, eventName) {
+  const rawSet = new Set();
+
+  if (isVanJamEvent(eventName)) {
+    const realKeys = VAN_JAM_DIFFICULTY_MAP[difficultyLabel];
+    if (!realKeys) return [];
+    for (const entry of entries) {
+      for (const key of realKeys) {
+        (entry.tricks[key] || []).forEach(t => rawSet.add(t));
+      }
+    }
+  } else {
+    for (const entry of entries) {
+      (entry.tricks[difficultyLabel] || []).forEach(t => rawSet.add(t));
+    }
+  }
+
+  return Array.from(rawSet).sort();
+}
+
 export default function Generator({ onLogTrick, generatedTricks = [], setGeneratedTricks }) {
   const { event, year } = useParams();
   const navigate = useNavigate();
 
-  // 📝 PASTE YOUR GOOGLE DEPLOYMENT WEB APP URL HERE:
   const GOOGLE_SCRIPT_URL = import.meta.env ? import.meta.env.VITE_GOOGLE_SCRIPT_URL : process.env.REACT_APP_GOOGLE_SCRIPT_URL;
 
   const [displayName, setDisplayName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [submitStatus, setSubmitStatus] = useState(null); // null | 'success' | 'error'
+  const [submitStatus, setSubmitStatus] = useState(null);
 
   async function submitToGoogleSheets() {
     if (!displayName.trim()) {
@@ -66,20 +108,16 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       difficulty: selectedDifficulty,
       seed: speedrunSeed,
       numTricks: timerTricks.length,
-      completionTime: (timeElapsed / 1000).toFixed(2) // Standardized to precise seconds (e.g., "42.53")
+      completionTime: (timeElapsed / 1000).toFixed(2)
     };
 
     try {
-      const response = await fetch(GOOGLE_SCRIPT_URL, {
+      await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
       });
-      // Note: 'no-cors' mode returns an opaque response type (status 0).
-      // If the code line didn't throw a catch error, the network packet was successfully sent.
       setSubmitStatus('success');
     } catch (error) {
       console.error("Leaderboard transmission error:", error);
@@ -89,19 +127,16 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     }
   }
 
-  // Timer intervals and accurate clock references
   const timerRef = useRef(null);
   const startTimeRef = useRef(0);
 
   /* =========================================================================
-      FAST EVENT LOOKUP INDEX
+     FAST EVENT LOOKUP INDEX
      ========================================================================= */
   const indexed = useMemo(() => {
     const map = new Map();
     for (const entry of tricks) {
-      if (!map.has(entry.event)) {
-        map.set(entry.event, []);
-      }
+      if (!map.has(entry.event)) map.set(entry.event, []);
       map.get(entry.event).push(entry);
     }
     return map;
@@ -117,10 +152,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     const sortedKeys = Array.from(indexed.keys()).sort((a, b) => {
       const priorityA = priority[a] || 99;
       const priorityB = priority[b] || 99;
-
-      if (priorityA !== priorityB) {
-        return priorityA - priorityB;
-      }
+      if (priorityA !== priorityB) return priorityA - priorityB;
       return a.localeCompare(b);
     });
 
@@ -128,17 +160,12 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, [indexed]);
 
   /* =========================================================================
-      SLUG RESOLVER & VALIDATION
+     SLUG RESOLVER & VALIDATION
      ========================================================================= */
   const selectedEvent = useMemo(() => {
     if (!event) return null;
     if (event.toLowerCase() === 'all') return 'All';
-
-    const matchedOriginalName = events.find(
-      (e) => e.replace(/\s+/g, '').toLowerCase() === event.toLowerCase()
-    );
-
-    return matchedOriginalName;
+    return events.find(e => e.replace(/\s+/g, '').toLowerCase() === event.toLowerCase());
   }, [event, events]);
 
   const selectedYear = useMemo(() => {
@@ -159,19 +186,16 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   /* =========================================================================
-      ⏱️ TIMER MODE STATES
+     ⏱️ TIMER MODE STATES
      ========================================================================= */
   const [isTimerMode, setIsTimerMode] = useState(false);
-  const [timerScope, setTimerScope] = useState('6'); // '6' or 'all'
-  const [timerStatus, setTimerStatus] = useState('config'); // 'config' | 'countdown' | 'running' | 'results'
+  const [timerScope, setTimerScope] = useState('6');
+  const [timerStatus, setTimerStatus] = useState('config');
   const [timerTricks, setTimerTricks] = useState([]);
   const [currentTimerIndex, setCurrentTimerIndex] = useState(0);
   const [timeElapsed, setTimeElapsed] = useState(0);
-  
-  // Custom seed states
   const [speedrunSeed, setSpeedrunSeed] = useState('');
 
-  // Automatically roll a fresh random 6-digit seed when entering config mode
   useEffect(() => {
     if (timerStatus === 'config' && !speedrunSeed) {
       generateNewSeed();
@@ -184,7 +208,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-      THEME INTERCEPTOR EFFECT
+     THEME INTERCEPTOR EFFECT
      ========================================================================= */
   const isVanJam = selectedEvent === 'Van Jam';
   const is2026 = selectedYear === '2026' || selectedYear === 'All';
@@ -195,14 +219,11 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     } else {
       document.body.removeAttribute('data-theme');
     }
-
-    return () => {
-      document.body.removeAttribute('data-theme');
-    };
+    return () => { document.body.removeAttribute('data-theme'); };
   }, [isVanJam, is2026]);
 
   /* =========================================================================
-      ⚙️ DYNAMIC PARAM NAVIGATION HANDLERS (Preserve Timer State)
+     ⚙️ DYNAMIC PARAM NAVIGATION HANDLERS
      ========================================================================= */
   function updateParamRouting(eventSlug, yearSlug) {
     const cleanEvent = eventSlug.replace(/\s+/g, '').toLowerCase();
@@ -213,23 +234,17 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   function handleEventSelect(newEventName) {
     setSelectedDifficulty('All');
     updateParamRouting(newEventName, 'all');
-    if (timerStatus === 'countdown' || timerStatus === 'running') {
-      softResetTimerSession();
-    }
+    if (timerStatus === 'countdown' || timerStatus === 'running') softResetTimerSession();
   }
 
   function handleYearSelect(newYearValue) {
     setSelectedDifficulty('All');
-    if (selectedEvent) {
-      updateParamRouting(selectedEvent, newYearValue);
-    }
-    if (timerStatus === 'countdown' || timerStatus === 'running') {
-      softResetTimerSession();
-    }
+    if (selectedEvent) updateParamRouting(selectedEvent, newYearValue);
+    if (timerStatus === 'countdown' || timerStatus === 'running') softResetTimerSession();
   }
 
   /* =========================
-      YEAR OPTIONS (EVENT-AWARE)
+     YEAR OPTIONS (EVENT-AWARE)
      ========================= */
   const years = useMemo(() => {
     if (!selectedEvent) return ['All'];
@@ -238,88 +253,101 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     return ['All', ...Array.from(set)].sort((a, b) => (a === 'All' ? -1 : b - a));
   }, [selectedEvent, indexed]);
 
-  /* =========================================================================
-      DIFFICULTY OPTIONS (6 Difficulties Total via Custom Compound Tiers)
-     ========================================================================= */
+  /* =========================
+     DIFFICULTY OPTIONS
+     Van Jam gets 6 virtual labels instead of raw JSON keys.
+     ========================= */
   const difficulties = useMemo(() => {
     if (!selectedEvent) return ['All'];
+
+    if (isVanJamEvent(selectedEvent)) {
+      // Only show virtual difficulties that have at least one trick in the current year filter
+      const base = indexed.get(selectedEvent) || [];
+      const filtered = selectedYear === 'All' ? base : base.filter(e => e.year === Number(selectedYear));
+
+      // Collect which real JSON keys actually exist in the filtered entries
+      const existingKeys = new Set();
+      for (const entry of filtered) {
+        Object.keys(entry.tricks).forEach(k => existingKeys.add(k));
+      }
+
+      // Only show virtual difficulties whose underlying real keys exist
+      const available = VAN_JAM_VIRTUAL_DIFFICULTIES.filter(vd => {
+        const realKeys = VAN_JAM_DIFFICULTY_MAP[vd];
+        return realKeys.some(k => existingKeys.has(k));
+      });
+
+      return ['All', ...available];
+    }
+
+    // Non-Van Jam: original behaviour
     const base = selectedEvent === 'All' ? tricks : indexed.get(selectedEvent) || [];
     const filtered = selectedYear === 'All' ? base : base.filter(e => e.year === Number(selectedYear));
     const set = new Set();
     for (const entry of filtered) {
       Object.keys(entry.tricks).forEach(d => set.add(d));
     }
-    
-    const coreDifficulties = Array.from(set);
-    
-    // Inject the combined 30-trick sets ONLY for Van Jam
-    if (selectedEvent === 'Van Jam' && (coreDifficulties.includes('Casual') || coreDifficulties.includes('Competitive'))) {
-      return ['All', ...coreDifficulties, '30 Tricks (Casual)', '30 Tricks (Competitive)'];
-    }
-    
-    return ['All', ...coreDifficulties];
+    return ['All', ...Array.from(set)];
   }, [selectedEvent, selectedYear, indexed]);
 
   /* =========================================================================
-      🛡️ FILTERED TRICK POOL (WITH COMPOUND DIFFICULTIES INTEGRATION)
+     🛡️ FILTERED TRICK POOL
+     Van Jam: translates virtual difficulty labels to real JSON keys.
      ========================================================================= */
   useEffect(() => {
     if (!selectedEvent) return;
 
     let base = selectedEvent === 'All' ? tricks : indexed.get(selectedEvent) || [];
-
     if (selectedYear !== 'All') {
       base = base.filter(e => e.year === Number(selectedYear));
     }
 
     const rawSetCollector = new Set();
-    
-    for (const entry of base) {
-      for (const [difficulty, list] of Object.entries(entry.tricks)) {
-        let isMatch = false;
 
-        if (selectedDifficulty === 'All') {
-          isMatch = true;
-        } else if (selectedDifficulty === '30 Tricks (Casual)') {
-          isMatch = difficulty === 'Casual' || difficulty === 'Casual Top 16';
-        } else if (selectedDifficulty === '30 Tricks (Competitive)') {
-          isMatch = difficulty === 'Competitive' || difficulty === 'Competitive Top 16';
-        } else {
-          isMatch = difficulty === selectedDifficulty;
+    if (isVanJamEvent(selectedEvent) && selectedDifficulty !== 'All') {
+      // Virtual difficulty → one or more real JSON keys
+      const realKeys = VAN_JAM_DIFFICULTY_MAP[selectedDifficulty] || [];
+      for (const entry of base) {
+        for (const key of realKeys) {
+          (entry.tricks[key] || []).forEach(t => rawSetCollector.add(t));
         }
-
-        if (isMatch) {
-          list.forEach(trickItem => rawSetCollector.add(trickItem));
+      }
+    } else if (isVanJamEvent(selectedEvent) && selectedDifficulty === 'All') {
+      // "All" for Van Jam: union of all real keys (deduplicated)
+      for (const entry of base) {
+        for (const list of Object.values(entry.tricks)) {
+          list.forEach(t => rawSetCollector.add(t));
+        }
+      }
+    } else {
+      // Non-Van Jam: original behaviour
+      for (const entry of base) {
+        for (const [difficulty, list] of Object.entries(entry.tricks)) {
+          const difficultyOk = selectedDifficulty === 'All' || difficulty === selectedDifficulty;
+          if (!difficultyOk) continue;
+          list.forEach(t => rawSetCollector.add(t));
         }
       }
     }
-    
+
     setAvailableTricks(Array.from(rawSetCollector).sort());
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
   /* =========================================================================
-      🎲 UNIQUE TRICK GENERATOR LOGIC (Standard Mode keeps native Math.random)
+     🎲 UNIQUE TRICK GENERATOR LOGIC
      ========================================================================= */
   function generateTrick() {
-    const uniqueAvailable = availableTricks.filter(
-      trick => !generatedTricks.includes(trick)
-    );
-
+    const uniqueAvailable = availableTricks.filter(trick => !generatedTricks.includes(trick));
     if (!uniqueAvailable.length) {
       alert("All available unique tricks for these filters are already in the queue!");
       return;
     }
-
     const randomIndex = Math.floor(Math.random() * uniqueAvailable.length);
-    const newTrick = uniqueAvailable[randomIndex];
-    setGeneratedTricks(prev => [newTrick, ...prev]);
+    setGeneratedTricks(prev => [uniqueAvailable[randomIndex], ...prev]);
   }
 
   function generateSixTricks() {
-    let uniqueAvailable = availableTricks.filter(
-      trick => !generatedTricks.includes(trick)
-    );
-
+    let uniqueAvailable = availableTricks.filter(trick => !generatedTricks.includes(trick));
     if (!uniqueAvailable.length) {
       alert("All available unique tricks for these filters are already in the queue!");
       return;
@@ -327,15 +355,12 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
 
     const newBatch = [];
     const count = Math.min(6, uniqueAvailable.length);
-
     for (let i = 0; i < count; i++) {
       const randomIndex = Math.floor(Math.random() * uniqueAvailable.length);
       const chosenTrick = uniqueAvailable[randomIndex];
-      
       newBatch.push(chosenTrick);
       uniqueAvailable = uniqueAvailable.filter(t => t !== chosenTrick);
     }
-
     setGeneratedTricks(prev => [...newBatch, ...prev]);
   }
 
@@ -349,7 +374,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-      ⏱️ SPEEDRUN TIMER RUNTIME CONTROLLERS (Seeded & Deterministic)
+     ⏱️ SPEEDRUN TIMER RUNTIME CONTROLLERS
      ========================================================================= */
   function resetTimerMode() {
     setIsTimerMode(false);
@@ -362,7 +387,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     setCurrentTimerIndex(0);
     setTimeElapsed(0);
     setSpeedrunSeed('');
-    setSubmitStatus(null); 
+    setSubmitStatus(null);
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
@@ -427,29 +452,25 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
 
         const rawDurationSecs = (timeElapsed / 1000).toFixed(2);
         const formatLogText = `⏱️ Speedrun [${selectedEvent} - ${selectedYear} - ${selectedDifficulty}] (Seed: ${speedrunSeed}): Finished ${timerTricks.length} tricks in ${rawDurationSecs}s`;
-        
         if (onLogTrick) onLogTrick(formatLogText);
       }
     }
   }
 
   useEffect(() => {
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, []);
 
   /* =========================================================================
-      ⌨️ KEYBOARD SUPPORT (SPACEBAR TRIGGER)
+     ⌨️ KEYBOARD SUPPORT
      ========================================================================= */
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((timerStatus === 'countdown' || timerStatus === 'running') && e.code === 'Space') {
-        e.preventDefault(); 
+        e.preventDefault();
         handleTimerTap();
       }
     };
-
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [timerStatus, currentTimerIndex, timerTricks]);
@@ -459,29 +480,28 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     const minutes = Math.floor(totalSeconds / 60);
     const seconds = totalSeconds % 60;
     const centiseconds = Math.floor((ms % 1000) / 10);
-    
     return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${centiseconds.toString().padStart(2, '0')}`;
   }
 
   /* =========================================================================
-      🎨 DYNAMIC THEME SYSTEM CONFIGURATION
+     🎨 DYNAMIC THEME SYSTEM
      ========================================================================= */
   const vanJamYellow = '#eec14d';
-  const vanJamGreen = '#b5ca6d'; 
+  const vanJamGreen = '#b5ca6d';
   const vanJamDarkText = '#1a1a1a';
 
   const activeThemeColor = is2026 ? vanJamGreen : vanJamYellow;
   const activeBorderColor = is2026 ? '#9cb057' : '#dfb13c';
 
   const vanJamButtonStyles = isVanJam ? {
-    backgroundColor: activeThemeColor, 
-    color: vanJamDarkText,            
+    backgroundColor: activeThemeColor,
+    color: vanJamDarkText,
     border: `1px solid ${activeBorderColor}`,
     fontWeight: '600'
   } : {};
 
   /* =========================================================================
-      VIEW 1: CLEAN HOME HUB
+     VIEW 1: CLEAN HOME HUB
      ========================================================================= */
   if (!selectedEvent) {
     return (
@@ -522,16 +542,16 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-      VIEW 2: WORKBENCH COMPONENT
+     VIEW 2: WORKBENCH COMPONENT
      ========================================================================= */
   return (
     <div className="card">
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-        <Link 
-          to="/generator" 
+        <Link
+          to="/generator"
           onClick={resetTimerMode}
-          style={{ 
-            color: 'var(--color-text-secondary)', 
+          style={{
+            color: 'var(--color-text-secondary)',
             textDecoration: 'none',
             fontSize: '0.9rem',
             display: 'inline-flex',
@@ -539,7 +559,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
             gap: '0.3rem'
           }}
         >
-          &larr; Back to Events
+          ← Back to Events
         </Link>
 
         <button
@@ -566,58 +586,49 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       </div>
 
       <h2>{selectedEvent === 'All' ? 'All Events' : selectedEvent}</h2>
-      
+
+      {/* FILTER CONTROLS */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
         <div>
           <label>Year</label>
           <br />
-          <select
-            value={selectedYear}
-            onChange={e => handleYearSelect(e.target.value)}
-          >
-            {years.map(y => (
-              <option key={y} value={y}>{y}</option>
-            ))}
+          <select value={selectedYear} onChange={e => handleYearSelect(e.target.value)}>
+            {years.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
 
         <div>
           <label>Difficulty</label>
           <br />
-          <select
-            value={selectedDifficulty}
-            onChange={e => setSelectedDifficulty(e.target.value)}
-          >
-            {difficulties.map(d => (
-              <option key={d} value={d}>{d}</option>
-            ))}
+          <select value={selectedDifficulty} onChange={e => setSelectedDifficulty(e.target.value)}>
+            {difficulties.map(d => <option key={d} value={d}>{d}</option>)}
           </select>
         </div>
       </div>
 
       {/* =========================================================================
-         🎰 RENDERING BLOCK A: TIMER MODE SUBPANEL
+         🎰 TIMER MODE SUBPANEL
          ========================================================================= */}
       {isTimerMode && (
         <div style={{ marginTop: '1.5rem', padding: '1.25rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--color-border)' }}>
           <h3 style={{ marginTop: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             ⏱️ Speedrun Configurator
           </h3>
-          
+
           {timerStatus === 'config' && (
             <>
               <p style={{ fontSize: '0.9rem', color: 'var(--color-text-secondary)' }}>
                 Select whether you want to race through a standard set of 6 random tricks or clear the entire trick list.
               </p>
-              
+
               <div style={{ margin: '1.25rem 0', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.95rem', fontWeight: '500' }}>Target Size:</span>
-                <div style={{ 
-                  display: 'inline-flex', 
-                  background: 'rgba(255, 255, 255, 0.06)', 
-                  padding: '2px', 
+                <div style={{
+                  display: 'inline-flex',
+                  background: 'rgba(255, 255, 255, 0.06)',
+                  padding: '2px',
                   borderRadius: '6px',
-                  border: '1px solid var(--color-border)' 
+                  border: '1px solid var(--color-border)'
                 }}>
                   <button
                     type="button"
@@ -661,18 +672,18 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                   Competition Track Seed (6 Digits)
                 </label>
                 <div style={{ display: 'flex', gap: '0.5rem' }}>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     maxLength={6}
                     value={speedrunSeed}
-                    onChange={(e) => setSpeedrunSeed(e.target.value.replace(/\D/g, ''))} 
+                    onChange={(e) => setSpeedrunSeed(e.target.value.replace(/\D/g, ''))}
                     placeholder="Random"
-                    style={{ 
-                      flex: 1, 
-                      padding: '0.4rem 0.6rem', 
-                      background: 'rgba(255,255,255,0.05)', 
-                      border: '1px solid var(--color-border)', 
-                      borderRadius: '4px', 
+                    style={{
+                      flex: 1,
+                      padding: '0.4rem 0.6rem',
+                      background: 'rgba(255,255,255,0.05)',
+                      border: '1px solid var(--color-border)',
+                      borderRadius: '4px',
                       color: '#fff',
                       fontFamily: 'monospace',
                       fontSize: '1rem',
@@ -680,7 +691,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                       textAlign: 'center'
                     }}
                   />
-                  <button 
+                  <button
                     type="button"
                     onClick={generateNewSeed}
                     style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem', cursor: 'pointer', background: 'rgba(255,255,255,0.1)', border: '1px solid var(--color-border)', color: '#fff', borderRadius: '4px' }}
@@ -722,10 +733,10 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 Track Seed: <strong style={{ fontFamily: 'monospace' }}>{speedrunSeed}</strong>
               </p>
 
-              <div style={{ 
-                background: 'rgba(0,0,0,0.2)', 
-                padding: '1rem', 
-                borderRadius: '6px', 
+              <div style={{
+                background: 'rgba(0,0,0,0.2)',
+                padding: '1rem',
+                borderRadius: '6px',
                 border: '1px solid var(--color-border)',
                 marginBottom: '1.5rem',
                 textAlign: 'left'
@@ -733,20 +744,20 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 <label style={{ fontSize: '0.85rem', display: 'block', marginBottom: '0.4rem', fontWeight: '600' }}>
                   Submit Score to Leaderboard
                 </label>
-                
+
                 {submitStatus !== 'success' ? (
                   <div style={{ display: 'flex', gap: '0.5rem', flexDirection: 'column' }}>
-                    <input 
+                    <input
                       type="text"
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
                       placeholder="Enter your name/handle"
                       disabled={isSubmitting}
-                      style={{ 
-                        padding: '0.5rem', 
-                        background: 'rgba(255,255,255,0.05)', 
-                        border: '1px solid var(--color-border)', 
-                        borderRadius: '4px', 
+                      style={{
+                        padding: '0.5rem',
+                        background: 'rgba(255,255,255,0.05)',
+                        border: '1px solid var(--color-border)',
+                        borderRadius: '4px',
                         color: '#fff',
                         fontSize: '0.95rem'
                       }}
@@ -767,27 +778,27 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                     </button>
                     {submitStatus === 'error' && (
                       <small style={{ color: 'var(--color-error)', marginTop: '0.25rem' }}>
-                        &times; Error uploading score. Please try again.
+                        ❌ Error uploading score. Please try again.
                       </small>
                     )}
                   </div>
                 ) : (
                   <div style={{ color: 'var(--color-success)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0' }}>
-                    &check; Score safely logged directly to Google Sheets!
+                    ✅ Score logged to leaderboard successfully!
                   </div>
                 )}
               </div>
 
-              <button 
+              <button
                 onClick={() => {
-                  setSpeedrunSeed('');   
-                  setDisplayName('');    
-                  setSubmitStatus(null); 
+                  setSpeedrunSeed('');
+                  setDisplayName('');
+                  setSubmitStatus(null);
                   setTimerStatus('config');
-                }} 
+                }}
                 style={{ padding: '0.5rem 1rem', width: '100%' }}
               >
-                &#x21bb; Run Again (New Seed)
+                🔄 Run Again (New Seed)
               </button>
             </div>
           )}
@@ -795,7 +806,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
       )}
 
       {/* =========================================================================
-         🎲 RENDERING BLOCK B: STANDARD QUEUE WORKBENCH
+         🎲 STANDARD QUEUE WORKBENCH
          ========================================================================= */}
       {!isTimerMode && (
         <>
@@ -823,8 +834,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
           </div>
 
           <p style={{ marginTop: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
-            Available tricks: <strong style={{ color: 'var(--color-text-primary)' }}>{availableTricks.length}</strong> 
-            &nbsp;•&nbsp; 
+            Available tricks: <strong style={{ color: 'var(--color-text-primary)' }}>{availableTricks.length}</strong>
+            &nbsp;•&nbsp;
             Queue: <strong style={{ color: isVanJam ? activeThemeColor : 'var(--color-text-primary)' }}>{generatedTricks.length}</strong>
           </p>
 
@@ -845,7 +856,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         </>
       )}
 
-      {/* POPUP MODAL COMPONENT PORTAL */}
+      {/* POPUP MODAL */}
       {isModalOpen && createPortal(
         <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
@@ -869,18 +880,14 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         document.body
       )}
 
-      {/* =========================================================================
-         💥 FULLSCREEN OPAQUE TIMING SCREEN INTERCEPTOR
-         ========================================================================= */}
+      {/* FULLSCREEN TIMING SCREEN */}
       {(timerStatus === 'countdown' || timerStatus === 'running') && createPortal(
-        <div 
+        <div
           onClick={handleTimerTap}
           style={{
             position: 'fixed',
-            top: 0,
-            left: 0,
-            width: '100vw',
-            height: '100vh',
+            top: 0, left: 0,
+            width: '100vw', height: '100vh',
             zIndex: 99999,
             backgroundColor: 'rgba(10, 18, 30, 0.96)',
             color: '#ffffff',
@@ -900,11 +907,8 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
             <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
               🏁 Speedrun Track &mdash; {selectedDifficulty} (Seed: {speedrunSeed})
             </div>
-            <button 
-              onClick={(e) => {
-                e.stopPropagation(); 
-                softResetTimerSession();
-              }}
+            <button
+              onClick={(e) => { e.stopPropagation(); softResetTimerSession(); }}
               style={{
                 background: 'rgba(255,255,255,0.1)',
                 border: 'none',
@@ -920,7 +924,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
           </div>
 
           {/* MAIN TRICK CORE CONTAINER CARD */}
-          {/* MAIN TRICK CORE CONTAINER CARD (WHEEL DESIGN) */}
           <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
             {timerStatus === 'countdown' ? (
               <div>
@@ -938,13 +941,13 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                   TRICK {currentTimerIndex + 1} OF {timerTricks.length}
                 </div>
 
-                {/* 🎡 THE VERTICAL WHEEL CONTAINER */}
+                {/* THE VERTICAL WHEEL CONTAINER */}
                 <div style={{ 
                   display: 'flex', 
                   flexDirection: 'column', 
                   alignItems: 'center', 
                   justifyContent: 'center',
-                  minHeight: '260px', 
+                  minHeight: '260px',
                   position: 'relative'
                 }}>
                   
@@ -993,13 +996,12 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                   }}>
                     {currentTimerIndex < timerTricks.length - 1 ? timerTricks[currentTimerIndex + 1] : '🏁 [FINISH]'}
                   </div>
-
                 </div>
 
                 {/* INTERACTION PROMPT FOOTER */}
                 <p style={{ fontSize: '1.1rem', color: isVanJam ? activeThemeColor : 'rgba(255,255,255,0.6)', marginTop: '2.5rem' }}>
-                  {currentTimerIndex === timerTricks.length - 1 
-                    ? '👉 TAP OR [SPACE] TO FINISH RUN' 
+                  {currentTimerIndex === timerTricks.length - 1
+                    ? '👉 TAP OR [SPACE] TO FINISH RUN'
                     : '👉 TAP OR [SPACE] FOR THE NEXT TRICK'}
                 </p>
               </div>
