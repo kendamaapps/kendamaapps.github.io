@@ -816,10 +816,199 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
 
           <p style={{ marginTop: '1rem', color: 'var(--color-text-secondary)', fontSize: '0.95rem' }}>
             Available tricks: <strong style={{ color: 'var(--color-text-primary)' }}>{availableTricks.length}</strong> 
-            &nbsp;&bull;&nbsp; 
+            &nbsp;•&nbsp; 
             Queue: <strong style={{ color: isVanJam ? activeThemeColor : 'var(--color-text-primary)' }}>{generatedTricks.length}</strong>
           </p>
+
+          {/* GENERATED LIST ENGINE */}
+          {generatedTricks.length > 0 && (
+            <ul style={{ marginTop: '1rem', padding: 0, listStyle: 'none' }}>
+              {generatedTricks.map((trick, index) => (
+                <li key={`${trick}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderBottom: '1px solid var(--color-border)' }}>
+                  <span>{trick}</span>
+                  <div style={{ display: 'flex', gap: '1rem' }}>
+                    <span onClick={() => completeTrick(trick, index)} style={{ color: isVanJam ? activeThemeColor : 'var(--color-text-primary)', cursor: 'pointer', fontSize: '1.2rem', userSelect: 'none' }} title="Mark as completed">✓</span>
+                    <span onClick={() => removeTrick(index)} style={{ color: isVanJam ? activeThemeColor : 'var(--color-text-primary)', cursor: 'pointer', fontSize: '1.2rem', opacity: 0.7, userSelect: 'none' }} title="Remove from list">×</span>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </>
+      )}
+
+      {/* POPUP MODAL COMPONENT PORTAL */}
+      {isModalOpen && createPortal(
+        <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-title">Active Trick Pool ({availableTricks.length})</div>
+              <button className="modal-close-btn" onClick={() => setIsModalOpen(false)}>&times;</button>
+            </div>
+            <div className="modal-body">
+              <div className="modal-meta">Filters: {selectedEvent} • Year: {selectedYear} • Diff: {selectedDifficulty}</div>
+              <ul className="modal-list">
+                {availableTricks.map((trick, idx) => (
+                  <li key={`${trick}-${idx}`} className="modal-item">{idx + 1}. {trick}</li>
+                ))}
+              </ul>
+            </div>
+            <div className="modal-footer">
+              <button onClick={() => setIsModalOpen(false)} style={vanJamButtonStyles}>Close</button>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
+
+      {/* =========================================================================
+         💥 FULLSCREEN OPAQUE TIMING SCREEN INTERCEPTOR
+         ========================================================================= */}
+      {(timerStatus === 'countdown' || timerStatus === 'running') && createPortal(
+        <div 
+          onClick={handleTimerTap}
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            zIndex: 99999,
+            backgroundColor: 'rgba(10, 18, 30, 0.96)',
+            color: '#ffffff',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '2rem 1.5rem',
+            boxSizing: 'border-box',
+            textAlign: 'center',
+            cursor: 'pointer',
+            userSelect: 'none'
+          }}
+        >
+          {/* HEADER ROW BAR */}
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              🏁 Speedrun Track &mdash; {selectedDifficulty} (Seed: {speedrunSeed})
+            </div>
+            <button 
+              onClick={(e) => {
+                e.stopPropagation(); 
+                softResetTimerSession();
+              }}
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                border: 'none',
+                color: '#fff',
+                padding: '0.4rem 0.8rem',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.85rem'
+              }}
+            >
+              Abort Run
+            </button>
+          </div>
+
+          {/* MAIN TRICK CORE CONTAINER CARD */}
+          {/* MAIN TRICK CORE CONTAINER CARD (WHEEL DESIGN) */}
+          <div style={{ maxWidth: '800px', width: '100%', margin: '0 auto' }}>
+            {timerStatus === 'countdown' ? (
+              <div>
+                <h1 style={{ fontSize: '3.5rem', margin: '0 0 1rem 0', color: isVanJam ? activeThemeColor : 'var(--color-primary)' }}>READY</h1>
+                <p style={{ fontSize: '1.4rem', opacity: 0.8 }}>
+                  Tap anywhere on the screen or press [SPACE] to start the clock!
+                </p>
+                <div style={{ marginTop: '2rem', fontSize: '0.95rem', color: 'rgba(255,255,255,0.4)' }}>
+                  Total tricks scheduled: {timerTricks.length}
+                </div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem' }}>
+                <div style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.5)', marginBottom: '1.5rem' }}>
+                  TRICK {currentTimerIndex + 1} OF {timerTricks.length}
+                </div>
+
+                {/* 🎡 THE VERTICAL WHEEL CONTAINER */}
+                <div style={{ 
+                  display: 'flex', 
+                  flexDirection: 'column', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  minHeight: '260px', 
+                  position: 'relative'
+                }}>
+                  
+                  {/* PREVIOUS TRICK (ABOVE) */}
+                  <div style={{ 
+                    fontSize: '2rem', 
+                    fontWeight: '600', 
+                    opacity: 0.2, // Highly transparent
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '90vw',
+                    marginBottom: '0.5rem',
+                    transform: 'scale(0.85)'
+                  }}>
+                    {currentTimerIndex > 0 ? timerTricks[currentTimerIndex - 1] : ' '}
+                  </div>
+
+                  {/* CURRENT ACTIVE TRICK (CENTER) */}
+                  <h1 style={{ 
+                    fontSize: '3.8rem', 
+                    fontWeight: '800', 
+                    margin: '0.5rem 0', 
+                    lineHeight: '1.2', 
+                    letterSpacing: '-0.02em',
+                    transition: 'all 0.2s ease',
+                    maxWidth: '95vw',
+                    wordBreak: 'break-word'
+                  }}>
+                    {timerTricks[currentTimerIndex]}
+                  </h1>
+
+                  {/* NEXT TRICK (BELOW) */}
+                  <div style={{ 
+                    fontSize: '2rem', 
+                    fontWeight: '600', 
+                    opacity: 0.2, // Highly transparent
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    maxWidth: '90vw',
+                    marginTop: '0.5rem',
+                    transform: 'scale(0.85)'
+                  }}>
+                    {currentTimerIndex < timerTricks.length - 1 ? timerTricks[currentTimerIndex + 1] : '🏁 [FINISH]'}
+                  </div>
+
+                </div>
+
+                {/* INTERACTION PROMPT FOOTER */}
+                <p style={{ fontSize: '1.1rem', color: isVanJam ? activeThemeColor : 'rgba(255,255,255,0.6)', marginTop: '2.5rem' }}>
+                  {currentTimerIndex === timerTricks.length - 1 
+                    ? '👉 TAP OR [SPACE] TO FINISH RUN' 
+                    : '👉 TAP OR [SPACE] FOR THE NEXT TRICK'}
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* REALTIME COUNTER TIMER FOOTER */}
+          <div style={{ width: '100%', borderTop: '1px solid rgba(255,255,255,0.1)', paddingTop: '1.5rem' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '3.5rem', fontWeight: '700' }}>
+              {formatTime(timeElapsed)}
+            </div>
+            <div style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+              Centisecond Live System Metrics
+            </div>
+          </div>
+        </div>,
+        document.body
       )}
     </div>
   );
