@@ -70,16 +70,14 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     };
 
     try {
-      // Send the tracking payload to your Google Script Web App
       const response = await fetch(GOOGLE_SCRIPT_URL, {
         method: 'POST',
-        mode: 'no-cors', // Bypasses explicit CORS errors with simple Apps Script macros
+        mode: 'no-cors',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(payload)
       });
-
       // Note: 'no-cors' mode returns an opaque response type (status 0).
       // If the code line didn't throw a catch error, the network packet was successfully sent.
       setSubmitStatus('success');
@@ -96,7 +94,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const startTimeRef = useRef(0);
 
   /* =========================================================================
-     FAST EVENT LOOKUP INDEX
+      FAST EVENT LOOKUP INDEX
      ========================================================================= */
   const indexed = useMemo(() => {
     const map = new Map();
@@ -130,7 +128,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, [indexed]);
 
   /* =========================================================================
-     SLUG RESOLVER & VALIDATION
+      SLUG RESOLVER & VALIDATION
      ========================================================================= */
   const selectedEvent = useMemo(() => {
     if (!event) return null;
@@ -161,7 +159,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   /* =========================================================================
-     ⏱️ TIMER MODE STATES
+      ⏱️ TIMER MODE STATES
      ========================================================================= */
   const [isTimerMode, setIsTimerMode] = useState(false);
   const [timerScope, setTimerScope] = useState('6'); // '6' or 'all'
@@ -186,7 +184,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-     THEME INTERCEPTOR EFFECT
+      THEME INTERCEPTOR EFFECT
      ========================================================================= */
   const isVanJam = selectedEvent === 'Van Jam';
   const is2026 = selectedYear === '2026' || selectedYear === 'All';
@@ -204,7 +202,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, [isVanJam, is2026]);
 
   /* =========================================================================
-     ⚙️ DYNAMIC PARAM NAVIGATION HANDLERS (Preserve Timer State)
+      ⚙️ DYNAMIC PARAM NAVIGATION HANDLERS (Preserve Timer State)
      ========================================================================= */
   function updateParamRouting(eventSlug, yearSlug) {
     const cleanEvent = eventSlug.replace(/\s+/g, '').toLowerCase();
@@ -231,7 +229,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================
-     YEAR OPTIONS (EVENT-AWARE)
+      YEAR OPTIONS (EVENT-AWARE)
      ========================= */
   const years = useMemo(() => {
     if (!selectedEvent) return ['All'];
@@ -240,9 +238,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     return ['All', ...Array.from(set)].sort((a, b) => (a === 'All' ? -1 : b - a));
   }, [selectedEvent, indexed]);
 
-  /* =========================
-     DIFFICULTY OPTIONS
-     ========================= */
+  /* =========================================================================
+      DIFFICULTY OPTIONS (6 Difficulties Total via Custom Compound Tiers)
+     ========================================================================= */
   const difficulties = useMemo(() => {
     if (!selectedEvent) return ['All'];
     const base = selectedEvent === 'All' ? tricks : indexed.get(selectedEvent) || [];
@@ -251,11 +249,19 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     for (const entry of filtered) {
       Object.keys(entry.tricks).forEach(d => set.add(d));
     }
-    return ['All', ...Array.from(set)];
+    
+    const coreDifficulties = Array.from(set);
+    
+    // Inject the combined 30-trick sets ONLY for Van Jam
+    if (selectedEvent === 'Van Jam' && (coreDifficulties.includes('Casual') || coreDifficulties.includes('Competitive'))) {
+      return ['All', ...coreDifficulties, '30 Tricks (Casual)', '30 Tricks (Competitive)'];
+    }
+    
+    return ['All', ...coreDifficulties];
   }, [selectedEvent, selectedYear, indexed]);
 
   /* =========================================================================
-     🛡️ FILTERED TRICK POOL (WITH ABSOLUTE DEDUPLICATION PROOFING)
+      🛡️ FILTERED TRICK POOL (WITH COMPOUND DIFFICULTIES INTEGRATION)
      ========================================================================= */
   useEffect(() => {
     if (!selectedEvent) return;
@@ -267,21 +273,32 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     }
 
     const rawSetCollector = new Set();
+    
     for (const entry of base) {
       for (const [difficulty, list] of Object.entries(entry.tricks)) {
-        const difficultyOk = selectedDifficulty === 'All' || difficulty === selectedDifficulty;
-        if (!difficultyOk) continue;
-        
-        list.forEach(trickItem => rawSetCollector.add(trickItem));
+        let isMatch = false;
+
+        if (selectedDifficulty === 'All') {
+          isMatch = true;
+        } else if (selectedDifficulty === '30 Tricks (Casual)') {
+          isMatch = difficulty === 'Casual' || difficulty === 'Casual Top 16';
+        } else if (selectedDifficulty === '30 Tricks (Competitive)') {
+          isMatch = difficulty === 'Competitive' || difficulty === 'Competitive Top 16';
+        } else {
+          isMatch = difficulty === selectedDifficulty;
+        }
+
+        if (isMatch) {
+          list.forEach(trickItem => rawSetCollector.add(trickItem));
+        }
       }
     }
     
-    // Sort array elements structurally before processing to guarantee uniform indices across separate clients
     setAvailableTricks(Array.from(rawSetCollector).sort());
   }, [selectedEvent, selectedYear, selectedDifficulty, indexed]);
 
   /* =========================================================================
-     🎲 UNIQUE TRICK GENERATOR LOGIC (Standard Mode keeps native Math.random)
+      🎲 UNIQUE TRICK GENERATOR LOGIC (Standard Mode keeps native Math.random)
      ========================================================================= */
   function generateTrick() {
     const uniqueAvailable = availableTricks.filter(
@@ -332,7 +349,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-     ⏱️ SPEEDRUN TIMER RUNTIME CONTROLLERS (Seeded & Deterministic)
+      ⏱️ SPEEDRUN TIMER RUNTIME CONTROLLERS (Seeded & Deterministic)
      ========================================================================= */
   function resetTimerMode() {
     setIsTimerMode(false);
@@ -345,27 +362,23 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
     setCurrentTimerIndex(0);
     setTimeElapsed(0);
     setSpeedrunSeed('');
-    setSubmitStatus(null); // Reset sheets feedback layout
+    setSubmitStatus(null); 
     if (timerRef.current) clearInterval(timerRef.current);
   }
 
   function initTimerSession() {
     if (!availableTricks.length) return;
 
-    // 🎲 DYNAMIC FALLBACK: If string is blank, create a new random 6-digit code
     let finalSeed = speedrunSeed.trim();
     if (!finalSeed) {
       finalSeed = Math.floor(100000 + Math.random() * 900000).toString();
-      setSpeedrunSeed(finalSeed); // Write it back to the input UI immediately
+      setSpeedrunSeed(finalSeed);
     }
 
     const rng = createSeededRandom(finalSeed);
-
-    // Deep copy available pool
     let pool = [...availableTricks];
     let selectedSelection = [];
 
-    // Seeded Fisher-Yates Shuffle implementation
     const seededShuffle = (array) => {
       for (let i = array.length - 1; i > 0; i--) {
         const j = Math.floor(rng() * (i + 1));
@@ -427,7 +440,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }, []);
 
   /* =========================================================================
-     ⌨️ KEYBOARD SUPPORT (SPACEBAR TRIGGER)
+      ⌨️ KEYBOARD SUPPORT (SPACEBAR TRIGGER)
      ========================================================================= */
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -451,7 +464,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-     🎨 DYNAMIC THEME SYSTEM CONFIGURATION
+      🎨 DYNAMIC THEME SYSTEM CONFIGURATION
      ========================================================================= */
   const vanJamYellow = '#eec14d';
   const vanJamGreen = '#b5ca6d'; 
@@ -468,7 +481,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   } : {};
 
   /* =========================================================================
-     VIEW 1: CLEAN HOME HUB
+      VIEW 1: CLEAN HOME HUB
      ========================================================================= */
   if (!selectedEvent) {
     return (
@@ -509,7 +522,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
   }
 
   /* =========================================================================
-     VIEW 2: WORKBENCH COMPONENT
+      VIEW 2: WORKBENCH COMPONENT
      ========================================================================= */
   return (
     <div className="card">
@@ -526,10 +539,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
             gap: '0.3rem'
           }}
         >
-          ← Back to Events
+          &larr; Back to Events
         </Link>
 
-        {/* MODE TOGGLE LINK */}
         <button
           onClick={() => {
             if (isTimerMode) {
@@ -555,7 +567,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
 
       <h2>{selectedEvent === 'All' ? 'All Events' : selectedEvent}</h2>
       
-      {/* FILTER CONTROLS SUBROW */}
       <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', marginTop: '1rem' }}>
         <div>
           <label>Year</label>
@@ -599,7 +610,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 Select whether you want to race through a standard set of 6 random tricks or clear the entire trick list.
               </p>
               
-              {/* SEGMENTED CHIP TOGGLE CONTROL CONTAINER */}
               <div style={{ margin: '1.25rem 0', display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                 <span style={{ fontSize: '0.95rem', fontWeight: '500' }}>Target Size:</span>
                 <div style={{ 
@@ -646,7 +656,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 </div>
               </div>
 
-              {/* 💡 NEW SEED INTERACTION INTERFACE */}
               <div style={{ marginBottom: '1.5rem', background: 'rgba(0,0,0,0.15)', padding: '0.75rem', borderRadius: '6px', border: '1px solid var(--color-border)' }}>
                 <label style={{ fontSize: '0.85rem', display: 'block', color: 'var(--color-text-secondary)', marginBottom: '0.4rem', fontWeight: '600' }}>
                   Competition Track Seed (6 Digits)
@@ -657,7 +666,7 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                     maxLength={6}
                     value={speedrunSeed}
                     onChange={(e) => setSpeedrunSeed(e.target.value.replace(/\D/g, ''))} 
-                    placeholder="Random" // Changed from 123456 to Random
+                    placeholder="Random"
                     style={{ 
                       flex: 1, 
                       padding: '0.4rem 0.6rem', 
@@ -713,7 +722,6 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                 Track Seed: <strong style={{ fontFamily: 'monospace' }}>{speedrunSeed}</strong>
               </p>
 
-              {/* 📊 LEADERBOARD DATA LOGGING CONTAINER MODULE */}
               <div style={{ 
                 background: 'rgba(0,0,0,0.2)', 
                 padding: '1rem', 
@@ -759,27 +767,27 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
                     </button>
                     {submitStatus === 'error' && (
                       <small style={{ color: 'var(--color-error)', marginTop: '0.25rem' }}>
-                        ❌ Error uploading score. Please try again.
+                        &times; Error uploading score. Please try again.
                       </small>
                     )}
                   </div>
                 ) : (
                   <div style={{ color: 'var(--color-success)', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.25rem 0' }}>
-                    ✅ Score safely logged directly to Google Sheets!
+                    &check; Score safely logged directly to Google Sheets!
                   </div>
                 )}
               </div>
 
               <button 
                 onClick={() => {
-                  setSpeedrunSeed('');   // Clears the seed to trigger a fresh auto-roll
-                  setDisplayName('');    // 🔄 Clear the input name field for the next run
-                  setSubmitStatus(null); // 🔄 Reset the layout status to re-enable the submit button
+                  setSpeedrunSeed('');   
+                  setDisplayName('');    
+                  setSubmitStatus(null); 
                   setTimerStatus('config');
                 }} 
                 style={{ padding: '0.5rem 1rem', width: '100%' }}
               >
-                🔄 Run Again (New Seed)
+                &#x21bb; Run Again (New Seed)
               </button>
             </div>
           )}
