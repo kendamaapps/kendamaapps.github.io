@@ -595,6 +595,9 @@ export default function Generator({ onLogTrick, generatedTricks = [], setGenerat
         </div>
       </div>
 
+      {/* =========================================================================
+         🎰 RENDERING BLOCK A: TIMER MODE SUBPANEL
+         ========================================================================= */}
       {isTimerMode && (
         <div style={{ marginTop: '1.5rem', padding: '1.25rem', borderRadius: '8px', background: 'rgba(255,255,255,0.03)', border: '1px dashed var(--color-border)' }}>
           <h3 style={{ marginTop: 0, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
